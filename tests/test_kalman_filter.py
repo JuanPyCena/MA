@@ -4,6 +4,19 @@ from src.Filters import KalmanFilter
 
 class TestKalmanFilter(unittest.TestCase):
 
+    def __init__(self, *args, **kwargs):
+        super(TestKalmanFilter, self).__init__(*args, **kwargs)
+
+        self.state = np.array([1, 2])  # x
+        self.input = np.array([1, 0])  # u
+        self.measurement = np.array([1, 0])  # z
+        self.transition = np.array([[1, 0], [0, 1]])  # F
+        self.input_control_matrix = np.array([[1, 0], [0, 1]])  # G
+        self.noise = np.array([[1, 0], [0, 1]])  # Q
+        self.covariance_matrix = np.array([[1, 0], [0, 1]])  # P
+        self.measurement_matrix = np.array([[1, 0], [0, 1]])  # H
+        self.measurement_uncertainty = np.array([[1, 0], [0, 1]])  # R
+
     def test_constructor_error_no_arguments(self):
         with self.assertRaises(TypeError) as context:
             KalmanFilter()
@@ -16,38 +29,18 @@ class TestKalmanFilter(unittest.TestCase):
     ##############################################################################
 
     def test_constructor_no_error(self):
-        state                   = np.array([1, 2])  # x
-        input                   = np.array([1, 0])  # u
-        measurement             = np.array([1, 0])  # z
-        transition              = np.array([[1, 0], [0, 1]])  # F
-        input_control_matrix    = np.array([[1, 0], [0, 1]])  # G
-        noise                   = np.array([[1, 0], [0, 1]])  # Q
-        covariance_matrix       = np.array([[1, 0], [0, 1]])  # P
-        measurement_matrix      = np.array([[1, 0], [0, 1]])  # H
-        measurement_uncertainty = np.array([[1, 0], [0, 1]])  # R
-
         try:
-            kf = KalmanFilter(state, input, measurement, transition, input_control_matrix, noise, covariance_matrix,
-                              measurement_matrix, measurement_uncertainty)
+            kf = KalmanFilter(self.state, self.input, self.measurement, self.transition, self.input_control_matrix, self.noise, self.covariance_matrix,
+                              self.measurement_matrix, self.measurement_uncertainty)
         except TypeError:
             self.assertTrue(False)
 
     ##############################################################################
 
     def test_constructor_wrong_type(self):
-        state                   = int(5)  # x
-        input                   = np.array([1, 0])  # u
-        measurement             = np.array([1, 0])  # z
-        transition              = np.array([[1, 0], [0, 1]])  # F
-        input_control_matrix    = np.array([[1, 0], [0, 1]])  # G
-        noise                   = np.array([[1, 0], [0, 1]])  # Q
-        covariance_matrix       = np.array([[1, 0], [0, 1]])  # P
-        measurement_matrix      = np.array([[1, 0], [0, 1]])  # H
-        measurement_uncertainty = np.array([[1, 0], [0, 1]])  # R
-
         with self.assertRaises(AssertionError) as context:
-            KalmanFilter(state, input, measurement, transition, input_control_matrix, noise, covariance_matrix,
-                              measurement_matrix, measurement_uncertainty)
+            KalmanFilter(int(5), self.input, self.measurement, self.transition, self.input_control_matrix, self.noise, self.covariance_matrix,
+                              self.measurement_matrix, self.measurement_uncertainty)
 
         self.assertTrue("arg 5 does not match <class 'numpy.ndarray'>" in str(context.exception))
 
@@ -55,24 +48,14 @@ class TestKalmanFilter(unittest.TestCase):
     ##############################################################################
 
     def test_predict_no_arguments(self):
-        state                   = np.array([1, 2])  # x
-        input                   = np.array([1, 0])  # u
-        measurement             = np.array([1, 0])  # z
-        transition              = np.array([[1, 0], [0, 1]])  # F
-        input_control_matrix    = np.array([[1, 0], [0, 1]])  # G
-        noise                   = np.array([[1, 0], [0, 1]])  # Q
-        covariance_matrix       = np.array([[1, 0], [0, 1]])  # P
-        measurement_matrix      = np.array([[1, 0], [0, 1]])  # H
-        measurement_uncertainty = np.array([[1, 0], [0, 1]])  # R
-
-        kf = KalmanFilter(state, input, measurement, transition, input_control_matrix, noise, covariance_matrix,
-                          measurement_matrix, measurement_uncertainty)
+        kf = KalmanFilter(self.state, self.input, self.measurement, self.transition, self.input_control_matrix, self.noise, self.covariance_matrix,
+                          self.measurement_matrix, self.measurement_uncertainty)
 
         state_before = kf.state.copy()
         covariance_before = kf.covariance.copy()
 
-        self.assertTrue(np.array_equal(state_before, state))
-        self.assertTrue(np.array_equal(covariance_before, covariance_matrix))
+        self.assertTrue(np.array_equal(state_before, self.state))
+        self.assertTrue(np.array_equal(covariance_before, self.covariance_matrix))
 
         kf.predict()
 
@@ -85,24 +68,14 @@ class TestKalmanFilter(unittest.TestCase):
     ##############################################################################
 
     def test_predict_input_arguments(self):
-        state                   = np.array([1, 2])  # x
-        input                   = np.array([1, 0])  # u
-        measurement             = np.array([1, 0])  # z
-        transition              = np.array([[1, 0], [0, 1]])  # F
-        input_control_matrix    = np.array([[1, 0], [0, 1]])  # G
-        noise                   = np.array([[1, 0], [0, 1]])  # Q
-        covariance_matrix       = np.array([[1, 0], [0, 1]])  # P
-        measurement_matrix      = np.array([[1, 0], [0, 1]])  # H
-        measurement_uncertainty = np.array([[1, 0], [0, 1]])  # R
-
-        kf = KalmanFilter(state, input, measurement, transition, input_control_matrix, noise, covariance_matrix,
-                          measurement_matrix, measurement_uncertainty)
+        kf = KalmanFilter(self.state, self.input, self.measurement, self.transition, self.input_control_matrix, self.noise, self.covariance_matrix,
+                          self.measurement_matrix, self.measurement_uncertainty)
 
         state_before      = kf.state.copy()
         covariance_before = kf.covariance.copy()
 
-        self.assertTrue(np.array_equal(state_before, state))
-        self.assertTrue(np.array_equal(covariance_before, covariance_matrix))
+        self.assertTrue(np.array_equal(state_before, self.state))
+        self.assertTrue(np.array_equal(covariance_before, self.covariance_matrix))
 
         kf.predict(input=np.array([2,2]))
 
@@ -115,18 +88,8 @@ class TestKalmanFilter(unittest.TestCase):
     ##############################################################################
 
     def test_predict_argument_errors(self):
-        state                   = np.array([1, 2])  # x
-        input                   = np.array([1, 0])  # u
-        measurement             = np.array([1, 0])  # z
-        transition              = np.array([[1, 0], [0, 1]])  # F
-        input_control_matrix    = np.array([[1, 0], [0, 1]])  # G
-        noise                   = np.array([[1, 0], [0, 1]])  # Q
-        covariance_matrix       = np.array([[1, 0], [0, 1]])  # P
-        measurement_matrix      = np.array([[1, 0], [0, 1]])  # H
-        measurement_uncertainty = np.array([[1, 0], [0, 1]])  # R
-
-        kf = KalmanFilter(state, input, measurement, transition, input_control_matrix, noise, covariance_matrix,
-                          measurement_matrix, measurement_uncertainty)
+        kf = KalmanFilter(self.state, self.input, self.measurement, self.transition, self.input_control_matrix, self.noise, self.covariance_matrix,
+                          self.measurement_matrix, self.measurement_uncertainty)
 
         with self.assertRaises(AssertionError) as context:
             kf.predict(input=int(5))
@@ -141,24 +104,14 @@ class TestKalmanFilter(unittest.TestCase):
     ##############################################################################
 
     def test_update_measurement_arguments(self):
-        state                   = np.array([1, 2])  # x
-        input                   = np.array([1, 0])  # u
-        measurement             = np.array([1, 0])  # z
-        transition              = np.array([[1, 0], [0, 1]])  # F
-        input_control_matrix    = np.array([[1, 0], [0, 1]])  # G
-        noise                   = np.array([[1, 0], [0, 1]])  # Q
-        covariance_matrix       = np.array([[1, 0], [0, 1]])  # P
-        measurement_matrix      = np.array([[1, 0], [0, 1]])  # H
-        measurement_uncertainty = np.array([[1, 0], [0, 1]])  # R
-
-        kf = KalmanFilter(state, input, measurement, transition, input_control_matrix, noise, covariance_matrix,
-                          measurement_matrix, measurement_uncertainty)
+        kf = KalmanFilter(self.state, self.input, self.measurement, self.transition, self.input_control_matrix, self.noise, self.covariance_matrix,
+                          self.measurement_matrix, self.measurement_uncertainty)
 
         state_before      = kf.state.copy()
         covariance_before = kf.covariance.copy()
 
-        self.assertTrue(np.array_equal(state_before, state))
-        self.assertTrue(np.array_equal(covariance_before, covariance_matrix))
+        self.assertTrue(np.array_equal(state_before, self.state))
+        self.assertTrue(np.array_equal(covariance_before, self.covariance_matrix))
 
         kf.update(z=np.array([2,2]))
 
@@ -171,18 +124,8 @@ class TestKalmanFilter(unittest.TestCase):
     ##############################################################################
 
     def test_update_argument_errors(self):
-        state                   = np.array([1, 2])  # x
-        input                   = np.array([1, 0])  # u
-        measurement             = np.array([1, 0])  # z
-        transition              = np.array([[1, 0], [0, 1]])  # F
-        input_control_matrix    = np.array([[1, 0], [0, 1]])  # G
-        noise                   = np.array([[1, 0], [0, 1]])  # Q
-        covariance_matrix       = np.array([[1, 0], [0, 1]])  # P
-        measurement_matrix      = np.array([[1, 0], [0, 1]])  # H
-        measurement_uncertainty = np.array([[1, 0], [0, 1]])  # R
-
-        kf = KalmanFilter(state, input, measurement, transition, input_control_matrix, noise, covariance_matrix,
-                          measurement_matrix, measurement_uncertainty)
+        kf = KalmanFilter(self.state, self.input, self.measurement, self.transition, self.input_control_matrix, self.noise, self.covariance_matrix,
+                          self.measurement_matrix, self.measurement_uncertainty)
 
         with self.assertRaises(TypeError) as context:
             kf.update()
