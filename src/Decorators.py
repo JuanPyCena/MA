@@ -2,7 +2,7 @@ def typecheck(*types):
     def check_types(f):
         def new_f(*args, **kwds):
             # remove self from args
-            args_checks = args[1:]
+            args_checks = args[1:] + tuple(kwds.values())
             for (a, t) in zip(args_checks, types):
                 ok = False
                 if callable(a) or isinstance(a, t):
@@ -19,7 +19,7 @@ def valuecheck(*values):
     def check_values(f):
         def new_f(*args, **kwds):
             # remove self from args
-            args_checks = args[1:]
+            args_checks = args[1:] + tuple(kwds.values())
             for arg_pos, (a, t) in enumerate(zip(args_checks, values)):
                 assert a == t, "argument in position {arg_pos} does not match required value {a}, is {t} instead"\
                     .format(arg_pos=arg_pos+1, a=a, t=t)
