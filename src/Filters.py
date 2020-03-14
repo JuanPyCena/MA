@@ -31,13 +31,13 @@ class KalmanFilter(object):
 
     ##############################################################################
 
-    @typecheck((np.ndarray,None, ))
-    def predict(self, input=None):
+    @typecheck((np.ndarray, ))
+    def predict(self, input=np.array([])):
         """
         Predict next state (prior) using the Kalman filter state propagation
         equations.
         """
-        if input != None:
+        if not np.array_equal(input, np.array([])):
             self.input = input
 
         # x = Fx + Gu
