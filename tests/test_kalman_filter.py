@@ -142,7 +142,7 @@ class TestKalmanFilter(unittest.TestCase):
 
         self.assertTrue("update() takes 2 positional arguments but 3 were given" in str(context.exception))
 
-        ##############################################################################
+    ##############################################################################
 
     def test_simple_system(self):
         "TODO: implement a simple system and calculate 1 timestep. Verify all matrices afterwards"
