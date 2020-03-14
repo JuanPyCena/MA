@@ -4,8 +4,10 @@ def typecheck(*types):
             # remove self from args
             args_checks = args[1:]
             for (a, t) in zip(args_checks, types):
-                assert isinstance(a, t), \
-                    "arg %r does not match %s" % (a,t)
+                ok = False
+                if callable(a) or isinstance(a, t):
+                    ok = True
+                assert ok, "arg %r does not match %s" % (a,t)
             return f(*args, **kwds)
         new_f.__name__ = f.__name__
         return new_f
