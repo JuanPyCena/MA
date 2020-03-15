@@ -122,8 +122,8 @@ class ExtendedKalmanFilter(object):
 
     ##############################################################################
 
-    @typecheck(np.ndarray, types.FunctionType, types.FunctionType, (tuple, ), (tuple, ), (int, np.ndarray, ))
-    def predict_update(self, z, HJacobian, Hx, args=(), hx_args=(), u=0):
+    @typecheck(np.ndarray, types.FunctionType, types.FunctionType, (tuple, ), (tuple, ), (np.ndarray, ))
+    def predict_update(self, z, HJacobian, Hx, args=(), hx_args=(), u=np.array([])):
         """ Performs the predict/update innovation of the extended Kalman
         filter.
         Parameters
@@ -156,51 +156,32 @@ class ExtendedKalmanFilter(object):
         if not isinstance(hx_args, tuple):
             hx_args = (hx_args,)
 
-        self.input = u
-
-        H = HJacobian(self.state, *args)
+        if not np.array_equal(u, np.array([])):
+            self.input = u
 
         # predict step
-        self.state      = np.dot(self.transition_function, self.state) + np.dot(self.input_function, self.input)
-        self.covariance = np.dot(self.transition_function, self.covariance).dot(self.transition_function.T) + self.process_noise_function
-
-        # save prior
-        self.state_prior = np.copy(self.state)
-        self.covariance  = np.copy(self.covariance)
-
-        # save prior
-        self.state_prior      = self.state.copy()
-        self.covariance_prior = self.covariance.copy()
+        self.predict(self.input)
 
         # update step
-        PH_transpose = np.dot(self.covariance, H.T)
-        S            = np.dot(H, PH_transpose) + self.state_uncertainty
-        S_inv        = np.linalg.inv(S)
-        K            = np.dot(PH_transpose, S_inv)
-
-        y          = z - Hx(self.state, *hx_args)
-        self.state = self.state + np.dot(K, y)
-
-        I = np.eye(np.size(self.state))
-
-        I_KH            = I - np.dot(K, H)
-        self.covariance = np.dot(I_KH, self.covariance).dot(I_KH.T) + np.dot(K, self.state_uncertainty).dot(K.T)
-
-        # save measurement and posterior state
-        self.measurement = z.copy()
-        self.x_post      = self.x.copy()
-        self.P_post      = self.P.copy()
+        self.update(z, HJacobian, Hx, args, hx_args, self.input)
 
     ##############################################################################
 
-    @typecheck((np.ndarray,None, ))
-    def predict(self, input=None):
+    @typecheck((np.ndarray, ))
+    def predict(self, input=np.array([])):
         """
-                Predict next state (prior) using the Kalman filter state propagation
-                equations.
-                """
+        Predict next state (prior) using the Kalman filter state propagation
+        equations.
+        """
+
+        if not np.array_equal(input, np.array([])):
+            self.input = input
+
         # x = Fx + Gu
-        self.state = np.dot(self.transition_function, self.state) + np.dot(self.input_function, self.input)
+        if self.input_function.shape != np.array([]).shape and self.input.shape != np.array([]).shape:
+            self.state = np.dot(self.transition_function, self.state) + np.dot(self.input_function, self.input)
+        else:
+            self.state = np.dot(self.transition_function, self.state)
 
         # P = FPF' + Q
         self.covariance = np.dot(np.dot(self.transition_function, self.covariance),
@@ -208,12 +189,12 @@ class ExtendedKalmanFilter(object):
 
         # save prior
         self.state_prior      = np.copy(self.state)
-        self.covariance_prior = np.copy(self.covariance.copy)
+        self.covariance_prior = np.copy(self.covariance)
 
     ##############################################################################
 
-    @typecheck(np.ndarray, types.FunctionType, types.FunctionType, (tuple, ), (tuple, ), (int, np.ndarray,))
-    def update(self, z, HJacobian, Hx, args=(), hx_args=(), u=0):
+    @typecheck(np.ndarray, types.FunctionType, types.FunctionType, (tuple, ), (tuple, ), (np.ndarray, ))
+    def update(self, z, HJacobian, Hx, args=(), hx_args=(), u=np.array([])):
         """ Performs the predict/update innovation of the extended Kalman
         filter.
         Parameters
@@ -246,7 +227,8 @@ class ExtendedKalmanFilter(object):
         if not isinstance(hx_args, tuple):
             hx_args = (hx_args,)
 
-        self.input = u
+        if not np.array_equal(u, np.array([])):
+            self.input = u
 
         H = HJacobian(self.state, *args)
 
