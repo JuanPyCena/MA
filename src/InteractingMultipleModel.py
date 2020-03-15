@@ -5,6 +5,8 @@ from src.Decorators import *
 from src.Filters import KalmanFilter as KF
 from src.Filters import ExtendedKalmanFilter as EKF
 
+# This filter is designed after the formulas described in https://drive.google.com/open?id=1KRITwuqHBTCtndpCvFQknt3VB0lFSruw
+
 class InteractingMultipleModel(object):
 
     @typecheck(list, np.ndarray, np.ndarray)
