@@ -64,6 +64,7 @@ class InteractingMultipleModel(object):
         # Calculate the mode probability for the state and covariance update
         self._calc_mode_probability()
 
+        # Calculate te state and covariance of the filter
         self._calculate_IMM_state_covariance()
 
     # EOC
