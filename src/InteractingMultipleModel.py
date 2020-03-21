@@ -46,14 +46,14 @@ class InteractingMultipleModel(object):
         states      = []
         covariances = []
         for j, filter in enumerate(self.filters):
-            state      = np.zeros(filter.states.shape)
+            state      = np.zeros(filter.state.shape)
             covariance = np.zeros(filter.covariance.shape)
 
-            for i, mixed_state in self.mixed_state:
+            for i, mixed_state in enumerate(self.mixed_state):
                 state += mixed_state * self.mode_probability_matrix[i,j]
 
             # this need to be done in a separate loop because the state has to be calculated before hand
-            for i, mixed_covariance in self.mixed_covariance:
+            for i, mixed_covariance in enumerate(self.mixed_covariance):
                 covariance += self.mode_probability_matrix[i,j] * (mixed_covariance +
                                                                    np.dot((self.mixed_state[i] - state),
                                                                           (self.mixed_state[i] - state).T))
@@ -72,7 +72,7 @@ class InteractingMultipleModel(object):
             self.mixed_covariance.append(covariance)
 
     ##############################################################################
-
+    @typecheck(np.ndarray)
     def _calc_mode_probability(self, measurement):
         lambdas = []
 
@@ -112,14 +112,14 @@ class InteractingMultipleModel(object):
     ##############################################################################
 
     def _calculate_IMM_state_covariance(self):
-        state = np.zeros(self.filter[0].states.shape)
-        covariance = np.zeros(self.filter[0].covariance.shape)
+        state = np.zeros(self.filters[0].state.shape)
+        covariance = np.zeros(self.filters[0].covariance.shape)
         for idx, filter in enumerate(self.filters):
-            state += self.mode_probability[idx] * filter.state
+            state += self.mode_probabilities[idx] * filter.state
 
         # this need to be done in a separate loop because the state has to be calculated before hand
         for idx, filter in enumerate(self.filters):
-            covariance += self.mode_probability[idx] * (filter.covariance +
+            covariance += self.mode_probabilities[idx] * (filter.covariance +
                                                         np.dot((filter.state - state), (filter.state - state).T))
 
         self.state      = state
@@ -127,18 +127,31 @@ class InteractingMultipleModel(object):
 
     ##############################################################################
 
-    @typecheck((np.ndarray,))
-    def predict_update(self, measurement, input=np.array([]), *args, **kwds):
+    @typecheck(np.ndarray, (np.ndarray,))
+    def predict_update(self, measurement, input=np.array([]), **update_kwds):
+        # Set mixed state to initial filter states
+        if self.mixed_state == []:
+            for idx, filter in enumerate(self.filters):
+                self.mixed_state.append(filter.state)
+
+        # Set mixed covariance to initial filter covariance
+        if self.mixed_covariance == []:
+            for idx, filter in enumerate(self.filters):
+                self.mixed_covariance.append(filter.covariance)
+
         # Get mixed state before prediction
         self._calc_mixed_state()
 
         for idx, filter in enumerate(self.filters):
+
+            kwds = update_kwds["update_kwds"][idx]
+
             # update filter state and covariance to current mixed values
             filter.state      = self.mixed_state[idx]
             filter.covariance = self.mixed_covariance[idx]
 
             filter.predict(input)
-            filter.update(measurement, *args, **kwds)
+            filter.update(measurement, **kwds)
 
             # update mixed_state and mixed_covariance to the updated filter values
             self.mixed_state[idx]      = filter.state
