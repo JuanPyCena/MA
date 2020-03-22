@@ -4,6 +4,8 @@ from math import sqrt
 
 from src.Filters import ExtendedKalmanFilter
 
+from filterpy.kalman import ExtendedKalmanFilter as ExtendedKalmanFilter_filterpy
+
 class TestExtendedKalmanFilter(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
@@ -19,9 +21,11 @@ class TestExtendedKalmanFilter(unittest.TestCase):
         self.measurement_matrix      = np.array([[1, 0], [0, 1]])  # H
         self.measurement_uncertainty = np.array([[1, 0], [0, 1]])  # R
 
-    def H_of(self, x):
-        """ compute Jacobian of H matrix for state x """
+        self.state = self.state.T # x
+        self.input = self.input.T  # u
+        self.measurement = self.measurement.T  # z
 
+    def H_of(self, x):
         horiz_dist = x[0]
         altitude = x[1]
 
@@ -29,9 +33,6 @@ class TestExtendedKalmanFilter(unittest.TestCase):
         return np.array([[horiz_dist / denom, 0], [0, altitude / denom]])
 
     def hx(self, x):
-        """ takes a state variable and returns the measurement that would
-        correspond to that state.
-        """
         return sqrt(x[0] ** 2 + x[1] ** 2)
 
     def test_constructor_error_no_arguments(self):
@@ -260,9 +261,94 @@ class TestExtendedKalmanFilter(unittest.TestCase):
 
     ##############################################################################
 
-    def test_simple_system(self):
-        "TODO: implement a simple system and calculate 1 timestep. Verify all matrices afterwards"
-        pass
+    def test_compare_predict_with_filterpy(self):
+        ekf = ExtendedKalmanFilter(self.state, self.input, self.measurement, self.transition, self.input_control_matrix, self.noise, self.covariance_matrix,
+                          self.measurement_matrix, self.measurement_uncertainty)
+
+        ekf_filterpy = ExtendedKalmanFilter_filterpy(2, 2, 2)
+        ekf_filterpy.x = self.state
+        ekf_filterpy.P = self.covariance_matrix
+        ekf_filterpy.F = self.transition
+        ekf_filterpy.R = self.measurement_uncertainty
+        ekf_filterpy.B = self.input_control_matrix
+        ekf_filterpy.H = self.measurement_matrix
+        ekf_filterpy.Q = self.noise
+
+        # Predict using implemented EKF
+        ekf.predict(input=np.array([2,2]))
+        # Predict using EKF from filterpy
+        ekf_filterpy.predict(u=np.array([2,2]))
+
+        state_ekf               = ekf.state.copy()
+        covariance_ekf          = ekf.covariance.copy()
+        state_ekf_filterpy      = ekf_filterpy.x.copy()
+        covariance_ekf_filterpy = ekf_filterpy.P.copy()
+
+        # Prediction of both filters must be the same
+        self.assertTrue(np.array_equal(state_ekf, state_ekf_filterpy))
+        self.assertTrue(np.array_equal(covariance_ekf, covariance_ekf_filterpy))
+
+    ##############################################################################
+
+    def test_compare_update_with_filterpy(self):
+        ekf = ExtendedKalmanFilter(self.state, self.input, self.measurement, self.transition, self.input_control_matrix, self.noise, self.covariance_matrix,
+                          self.measurement_matrix, self.measurement_uncertainty)
+
+        ekf_filterpy = ExtendedKalmanFilter_filterpy(2, 2, 2)
+        ekf_filterpy.x = self.state
+        ekf_filterpy.P = self.covariance_matrix
+        ekf_filterpy.F = self.transition
+        ekf_filterpy.R = self.measurement_uncertainty
+        ekf_filterpy.B = self.input_control_matrix
+        ekf_filterpy.H = self.measurement_matrix
+        ekf_filterpy.Q = self.noise
+
+        # Update using implemented EKF
+        ekf.update(z=np.array([1,2]), HJacobian=self.H_of, Hx=self.hx)
+        # Predict using EKF from filterpy
+        ekf_filterpy.update(z=np.array([1,2]), HJacobian=self.H_of, Hx=self.hx, R=self.covariance_matrix)
+
+        state_ekf               = ekf.state.copy()
+        covariance_ekf          = ekf.covariance.copy()
+        state_ekf_filterpy      = ekf_filterpy.x.copy()
+        covariance_ekf_filterpy = ekf_filterpy.P.copy()
+
+        # Update of both filters must be the same
+        self.assertTrue(np.array_equal(state_ekf, state_ekf_filterpy))
+        self.assertTrue(np.array_equal(covariance_ekf, covariance_ekf_filterpy))
+
+    ##############################################################################
+
+    def test_compare_predict_update_with_filterpy(self):
+        ekf = ExtendedKalmanFilter(self.state, self.input, self.measurement, self.transition, self.input_control_matrix, self.noise, self.covariance_matrix,
+                          self.measurement_matrix, self.measurement_uncertainty)
+
+        ekf_filterpy = ExtendedKalmanFilter_filterpy(2, 2, 2)
+        ekf_filterpy.x = self.state
+        ekf_filterpy.P = self.covariance_matrix
+        ekf_filterpy.F = self.transition
+        ekf_filterpy.R = self.measurement_uncertainty
+        ekf_filterpy.B = self.input_control_matrix
+        ekf_filterpy.H = self.measurement_matrix
+        ekf_filterpy.Q = self.noise
+
+        # Predict Update using implemented EKF
+        ekf.predict_update(z=np.array([2, 1]), HJacobian=self.H_of, Hx=self.hx, args=(), hx_args=(), u=np.array([1, 2]))
+
+        # Predict and updates using EKF from filterpy. Do not use predict_update as this leads to a different
+        # result then using predict and update in series
+        ekf_filterpy.predict(u=np.array([1, 2]))
+        ekf_filterpy.update(z=np.array([2, 1]), HJacobian=self.H_of, Hx=self.hx, R=self.covariance_matrix)
+
+        state_ekf               = ekf.state.copy()
+        covariance_ekf          = ekf.covariance.copy()
+        state_ekf_filterpy      = ekf_filterpy.x.copy()
+        covariance_ekf_filterpy = ekf_filterpy.P.copy()
+
+        # Update of both filters must be the same
+        self.assertTrue(np.array_equal(state_ekf, state_ekf_filterpy))
+        self.assertTrue(np.array_equal(covariance_ekf, covariance_ekf_filterpy))
+
 
 if __name__ == '__main__':
     unittest.main()
