@@ -164,7 +164,7 @@ class TestKalmanFilter(unittest.TestCase):
 
         # Predict using implemented KF
         kf.predict(input=np.array([2, 2]))
-        # predict using KF from filterpy
+        # Predict using KF from filterpy
         kf_filterpy.predict(u=np.array([2, 2]), B=self.input_control_matrix, F=self.transition, Q=self.noise)
 
         state_kf               = kf.state.copy()
@@ -202,7 +202,7 @@ class TestKalmanFilter(unittest.TestCase):
         covariance_kf          = kf.covariance.copy()
         covariance_kf_filterpy = kf_filterpy.P.copy()
 
-        # Prediction of both filters must be the same
+        # Update of both filters must be the same
         self.assertTrue(np.array_equal(state_kf, state_kf_filterpy))
         self.assertTrue(np.array_equal(covariance_kf, covariance_kf_filterpy))
 
@@ -237,7 +237,7 @@ class TestKalmanFilter(unittest.TestCase):
         covariance_kf          = kf.covariance.copy()
         covariance_kf_filterpy = kf_filterpy.P.copy()
 
-        # Prediction of both filters must be the same
+        # Prediction update of both filters must be the same
         self.assertTrue(np.array_equal(state_kf, state_kf_filterpy))
         self.assertTrue(np.array_equal(covariance_kf, covariance_kf_filterpy))
 
