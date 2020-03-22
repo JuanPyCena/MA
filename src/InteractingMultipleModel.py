@@ -143,8 +143,9 @@ class InteractingMultipleModel(object):
         self._calc_mixed_state()
 
         for idx, filter in enumerate(self.filters):
-
-            kwds = update_kwds["update_kwds"][idx]
+            kwds = dict()
+            if "update_kwds" in update_kwds.keys():
+                kwds = update_kwds["update_kwds"][idx]
 
             # update filter state and covariance to current mixed values
             filter.state      = self.mixed_state[idx]
