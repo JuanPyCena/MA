@@ -2,6 +2,8 @@ import unittest
 import numpy as np
 from src.Filters import KalmanFilter
 
+from filterpy.kalman import KalmanFilter as KalmanFiler_filterpy
+
 class TestKalmanFilter(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
@@ -16,6 +18,8 @@ class TestKalmanFilter(unittest.TestCase):
         self.covariance_matrix = np.array([[1, 0], [0, 1]])  # P
         self.measurement_matrix = np.array([[1, 0], [0, 1]])  # H
         self.measurement_uncertainty = np.array([[1, 0], [0, 1]])  # R
+
+    ##############################################################################
 
     def test_constructor_error_no_arguments(self):
         with self.assertRaises(TypeError) as context:
@@ -144,9 +148,98 @@ class TestKalmanFilter(unittest.TestCase):
 
     ##############################################################################
 
-    def test_simple_system(self):
-        "TODO: implement a simple system and calculate 1 timestep. Verify all matrices afterwards"
-        pass
+    def test_compare_predict_with_filterpy(self):
+        kf = KalmanFilter(self.state, self.input, self.measurement, self.transition, self.input_control_matrix,
+                          self.noise, self.covariance_matrix,
+                          self.measurement_matrix, self.measurement_uncertainty)
+
+        kf_filterpy = KalmanFiler_filterpy(2, 2, 2)
+        kf_filterpy.x = self.state
+        kf_filterpy.P = self.covariance_matrix
+        kf_filterpy.F = self.transition
+        kf_filterpy.R = self.measurement_uncertainty
+        kf_filterpy.B = self.input_control_matrix
+        kf_filterpy.H = self.measurement_matrix
+        kf_filterpy.Q = self.noise
+
+        # Predict using implemented KF
+        kf.predict(input=np.array([2, 2]))
+        # predict using KF from filterpy
+        kf_filterpy.predict(u=np.array([2, 2]), B=self.input_control_matrix, F=self.transition, Q=self.noise)
+
+        state_kf               = kf.state.copy()
+        state_kf_filterpy      = kf_filterpy.x.copy()
+        covariance_kf          = kf.covariance.copy()
+        covariance_kf_filterpy = kf_filterpy.P.copy()
+
+        # Prediction of both filters must be the same
+        self.assertTrue(np.array_equal(state_kf, state_kf_filterpy))
+        self.assertTrue(np.array_equal(covariance_kf, covariance_kf_filterpy))
+
+    ##############################################################################
+
+    def test_compare_update_with_filterpy(self):
+        kf = KalmanFilter(self.state, self.input, self.measurement, self.transition, self.input_control_matrix,
+                          self.noise, self.covariance_matrix,
+                          self.measurement_matrix, self.measurement_uncertainty)
+
+        kf_filterpy = KalmanFiler_filterpy(2, 2, 2)
+        kf_filterpy.x = self.state
+        kf_filterpy.P = self.covariance_matrix
+        kf_filterpy.F = self.transition
+        kf_filterpy.R = self.measurement_uncertainty
+        kf_filterpy.B = self.input_control_matrix
+        kf_filterpy.H = self.measurement_matrix
+        kf_filterpy.Q = self.noise
+
+        # Update using implemented KF
+        kf.update(z=np.array([2, 2]))
+        # Update using KF from filterpy
+        kf_filterpy.update(z=np.array([2, 2]), R=self.measurement_uncertainty, H=self.measurement_matrix)
+
+        state_kf               = kf.state.copy()
+        state_kf_filterpy      = kf_filterpy.x.copy()
+        covariance_kf          = kf.covariance.copy()
+        covariance_kf_filterpy = kf_filterpy.P.copy()
+
+        # Prediction of both filters must be the same
+        self.assertTrue(np.array_equal(state_kf, state_kf_filterpy))
+        self.assertTrue(np.array_equal(covariance_kf, covariance_kf_filterpy))
+
+    ##############################################################################
+
+    def test_compare_predict_update_with_filterpy(self):
+        kf = KalmanFilter(self.state, self.input, self.measurement, self.transition, self.input_control_matrix,
+                          self.noise, self.covariance_matrix,
+                          self.measurement_matrix, self.measurement_uncertainty)
+
+        kf_filterpy = KalmanFiler_filterpy(2, 2, 2)
+        kf_filterpy.x = self.state
+        kf_filterpy.P = self.covariance_matrix
+        kf_filterpy.F = self.transition
+        kf_filterpy.R = self.measurement_uncertainty
+        kf_filterpy.B = self.input_control_matrix
+        kf_filterpy.H = self.measurement_matrix
+        kf_filterpy.Q = self.noise
+
+        # Predict using implemented KF
+        kf.predict(input=np.array([2, 1]))
+        # Update using implemented KF
+        kf.update(z=np.array([1, 2]))
+
+        # Predict using KF from filterpy
+        kf_filterpy.predict(u=np.array([2, 1]), B=self.input_control_matrix, F=self.transition, Q=self.noise)
+        # Update using KF from filterpy
+        kf_filterpy.update(z=np.array([1, 2]), R=self.measurement_uncertainty, H=self.measurement_matrix)
+
+        state_kf               = kf.state.copy()
+        state_kf_filterpy      = kf_filterpy.x.copy()
+        covariance_kf          = kf.covariance.copy()
+        covariance_kf_filterpy = kf_filterpy.P.copy()
+
+        # Prediction of both filters must be the same
+        self.assertTrue(np.array_equal(state_kf, state_kf_filterpy))
+        self.assertTrue(np.array_equal(covariance_kf, covariance_kf_filterpy))
 
 if __name__ == '__main__':
     unittest.main()
