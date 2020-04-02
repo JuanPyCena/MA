@@ -22,11 +22,8 @@ The list could look like this:
 *filters = [KF, KF, EKF, EKF]*
 
 For each filter the following parameters should be configurable
-- The state(**x**), what kind of variables the system expects (e.g.: [pos_x, pos_y, vel_x, vel_y])
-- The input(**u**, _optional_), what kind of variables the system expects (most of the time this will be zero, but should be implemented for completness). [This can be abused to allow for forcefully extrapolating the state](https://en.wikipedia.org/wiki/Kalman_filter#Example_application,_technical)   
-- The measurement (**z**), what kind of variables the system expects
 - The system transition matrix (**F**), this matrix can consist of other variables aswell to provid the possibility to configure the system easily for new aiports
-- The input control matrix (**G/B**, _optional_), this matrix allows to manipulate the state directly using the input (**u**). [This can be abused to allow for forcefully extrapolating the state](https://en.wikipedia.org/wiki/Kalman_filter#Example_application,_technical) 
+- The input control matrix (**G/B**, _optional_), this matrix allows to manipulate the state directly using the input. [This can be abused to allow for forcefully extrapolating the state](https://en.wikipedia.org/wiki/Kalman_filter#Example_application,_technical) 
 - The process noise (**Q**, _optional_), this matrix can consist of other variables aswell, like *dt* (which would be a variable within the code)
 - The covariance matrix (**P**, _optional_), this matrix should provide an initial covariance state
 - The measurement control matrix (**H**), this matrix is used to project the measurement vector into the state space
@@ -34,5 +31,6 @@ For each filter the following parameters should be configurable
   it can be used to directly control the update of the state
   
 For the IMM the following parameters should be configurable:
+- The state(**x**), what kind of variables the system expects (e.g.: [pos_x, pos_y, vel_x, vel_y])
 - The initial mode probabilites (**u**, _optional_), usually in the beginning all modes are equally likely, but it should be configurable for completeness 
 - The markov transition matrix (**P**), this matrix defines the transitions between the modes/filters of the IMM. The sum of each column and each row must be 1
