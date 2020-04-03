@@ -8,21 +8,21 @@ from src.Decorators import *
 
 ##############################################################################
 # Global variables
-CODEVARIABLES = ["dt"]
+CODEVARIABLES = "code_variables"
+REQUIREDPARAMETERS = "required_parameters"
 
+# IMM
 FILTERKEY = "filters"
 STATEKEY = "state"
 MARKOVMATRIXKEY = "markov_transition_matrix"
 MODEPROBABILITIESKEY = "mode_probabilities"
 
-REQUIREDPARAMETERS = [FILTERKEY, STATEKEY, MARKOVMATRIXKEY, MODEPROBABILITIESKEY]
-
-
+# Filter keys
 KALMANFILTERKEY = "^(KF+)(\d)*$"  # Regex so multiple KF can be used with numbering
 EXTENDEDKALMANFILTERKEY = "^(EKF+)(\d)*$"  # Regex so multiple EKF can be used with numbering
-
 KNOWNFILTERKEYS = [KALMANFILTERKEY, EXTENDEDKALMANFILTERKEY]
 
+# KF/EKF filter
 TRANSITIONMATRIX = "transition_matrix"
 INPUTCONTROLMATRIX = "input_control_matrix"
 PROCESSNOISEMATRIX = "process_noise_matrix"
@@ -72,8 +72,12 @@ class ParserLib(object):
         except:
             temp_matrix = np.zeros(read_matrix.shape, dtype=object)
             known_variables = {}
+            code_variables = []
             if "known_variables" in kwargs.keys():
                 known_variables.update(kwargs["known_variables"])
+
+            if "code_variables" in kwargs.keys():
+                code_variables += kwargs["code_variables"]
 
             if not known_variables:
                 raise SyntaxError("Error while loading configured matrix '{}' !! Non-numeric value found which is no known variable".format(cfg_matrix))
@@ -82,11 +86,11 @@ class ParserLib(object):
                 try:
                     elem = float(elem)
                 except:
-                    if elem not in known_variables and elem not in CODEVARIABLES:
+                    if elem not in known_variables and elem not in code_variables:
                         SyntaxError(
                             "Error while loading configured matrix '{}' at position '{}' !! Non-numeric value '{}' found which is no known variable".format(
                                 cfg_matrix, row_col, elem))
-                    if elem not in CODEVARIABLES:
+                    if elem not in code_variables:
                         elem = known_variables[elem]
 
                 temp_matrix[row_col] = elem
@@ -98,10 +102,13 @@ class ParserLib(object):
     ##############################################################################
 
     @staticmethod
-    def read_known_variables(section):
+    def read_known_variables(section, **kwargs):
         known_variables = {}
+        required_params = []
+        if "required_params" in kwargs.keys():
+            required_params += kwargs["required_params"]
         for variable in section:
-            if variable in REQUIREDPARAMETERS:
+            if variable in required_params:
                 continue
             known_variables[variable] = float(section[variable])
 
@@ -161,6 +168,8 @@ class ConfigurationParser(object):
 
         # private variables
         self.__known_variables = {}
+        self.__required_parameters = []  # list which holds the required parameters for the IMM
+        self.__code_variables = []  # list which holds variables declared in the config which can be handled within the code
 
         # local variables
         IMM_cfg_params = {
@@ -172,6 +181,9 @@ class ConfigurationParser(object):
 
         # read config
         self.__config = self.__read_cfg(**kwargs)
+
+        # read general config
+        self.__read_general_config()
 
         # read IMM cfg
         self.__read_IMM_config(IMM_cfg_params)
@@ -199,6 +211,18 @@ class ConfigurationParser(object):
 
     ##############################################################################
 
+    def __read_general_config(self):
+        # Verify Section exists
+        if "GENERAL" not in self.__config.sections():
+            raise KeyError("Section {section} does not exist"
+                           .format(section="GENERAL"))
+
+        self.__code_variables = ParserLib.read_list(self.__config["GENERAL"][CODEVARIABLES])
+        self.__required_parameters = ParserLib.read_list(self.__config["GENERAL"][REQUIREDPARAMETERS])
+
+    ##############################################################################
+
+
     @typecheck(dict)
     def __read_IMM_config(self, cfg_params):
         # Verify Section exists
@@ -206,11 +230,16 @@ class ConfigurationParser(object):
             raise KeyError("Section {section} does not exist"
                            .format(section="IMM"))
 
-        self.__known_variables         = ParserLib.read_known_variables(self.__config["IMM"])
+        self.__known_variables         = ParserLib.read_known_variables(self.__config["IMM"],
+                                                                        required_params=self.__required_parameters)
         self.filters                  = ParserLib.read_list(self.__config["IMM"][cfg_params["filters"]])
         self.state_variables          = ParserLib.read_list(self.__config["IMM"][cfg_params["state"]])
-        self.markov_transition_matrix = ParserLib.read_matrix(self.__config["IMM"][cfg_params["markov_transition_matrix"]], known_variables=self.__known_variables)
-        self.mode_probabilities       = ParserLib.read_matrix(self.__config["IMM"][cfg_params["mode_probabilities"]], known_variables=self.__known_variables)
+        self.markov_transition_matrix = ParserLib.read_matrix(self.__config["IMM"][cfg_params["markov_transition_matrix"]],
+                                                              code_variables=self.__code_variables,
+                                                              known_variables=self.__known_variables)
+        self.mode_probabilities       = ParserLib.read_matrix(self.__config["IMM"][cfg_params["mode_probabilities"]],
+                                                              code_variables=self.__code_variables,
+                                                              known_variables=self.__known_variables)
 
     ##############################################################################
 
@@ -221,11 +250,15 @@ class ConfigurationParser(object):
                                       .format(filter))
 
             if re.compile(KALMANFILTERKEY).match(filter):
-                kf_config = KalmanFilterConfigParser(self.__config, filter, known_variables=self.__known_variables)
+                kf_config = KalmanFilterConfigParser(self.__config, filter,
+                                                     code_variables=self.__code_variables,
+                                                     known_variables=self.__known_variables)
                 self.filter_configs[filter] = kf_config
 
             if re.compile(EXTENDEDKALMANFILTERKEY).match(filter):
-                ekf_config = ExtendedKalmanFilterConfigParser(self.__config, filter, known_variables=self.__known_variables)
+                ekf_config = ExtendedKalmanFilterConfigParser(self.__config, filter,
+                                                              code_variables=self.__code_variables,
+                                                              known_variables=self.__known_variables)
                 self.filter_configs[filter] = ekf_config
 
     ##############################################################################
@@ -257,9 +290,12 @@ class KalmanFilterConfigParser(object):
         # private variables
         self.__config          = config
         self.__known_variables = {}
+        self.__code_variables  = []
         self.__filter_key      = filter_key
         if "known_variables" in kwargs.keys():
             self.__known_variables.update(kwargs["known_variables"])
+        if "code_variables" in kwargs.keys():
+            self.__code_variables += kwargs["code_variables"]
 
         # local variables
         KF_cfg_params = {
@@ -270,7 +306,7 @@ class KalmanFilterConfigParser(object):
             "measurement_control_matrix": MEASUREMENTCONTROLMATRIX,
             "measurement_uncertainty_matrix": MEASUREMENTUNCERTAINTYMATRIX
         }
-
+        self.__known_variables.update(ParserLib.read_known_variables(self.__config[self.__filter_key]))
         self.__read_KF_filter_config(KF_cfg_params)
 
         # Verify that the loading has worked
@@ -347,12 +383,15 @@ class ExtendedKalmanFilterConfigParser(object):
         # private variables
         self.__config = config
         self.__known_variables = {}
+        self.__code_variables = []
         self.__filter_key = filter_key
         if "known_variables" in kwargs.keys():
             self.__known_variables.update(kwargs["known_variables"])
+        if "code_variables" in kwargs.keys():
+            self.__code_variables += kwargs["code_variables"]
 
         # local variables
-        KF_cfg_params = {
+        EKF_cfg_params = {
             "transition_matrix": TRANSITIONMATRIX,
             "input_control_matrix": INPUTCONTROLMATRIX,
             "process_noise_matrix": PROCESSNOISEMATRIX,
@@ -360,8 +399,8 @@ class ExtendedKalmanFilterConfigParser(object):
             "measurement_control_matrix": MEASUREMENTCONTROLMATRIX,
             "measurement_uncertainty_matrix": MEASUREMENTUNCERTAINTYMATRIX
         }
-
-        self.__read_EKF_filter_config(KF_cfg_params)
+        self.__known_variables.update(ParserLib.read_known_variables(self.__config[self.__filter_key]))
+        self.__read_EKF_filter_config(EKF_cfg_params)
 
         # Verify that the loading has worked
         if not self.__loading_successfull():
