@@ -357,7 +357,8 @@ class KalmanFilterConfigParser(object):
     def __read_optional_matrix_parameters(self, praramkey, param, shape, optional=None):
         if praramkey in self.__config[self.__filter_key]:
             return ParserLib.read_matrix(self.__config[self.__filter_key][param],
-                                                                known_variables=self.__known_variables)
+                                         code_variables=self.__code_variables,
+                                         known_variables=self.__known_variables)
         elif optional is None:
             return np.eye(shape)
 
@@ -461,6 +462,7 @@ class ExtendedKalmanFilterConfigParser(object):
     def __read_optional_matrix_parameters(self, praramkey, param, shape, optional=None):
         if praramkey in self.__config[self.__filter_key]:
             return ParserLib.read_matrix(self.__config[self.__filter_key][param],
+                                         code_variables=self.__code_variables,
                                          known_variables=self.__known_variables)
         elif optional is None:
             return np.eye(shape)
