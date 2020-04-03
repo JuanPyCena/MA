@@ -1,7 +1,7 @@
 import unittest
 from src.ConfigParser import ConfigurationParser as CP
 
-CFGPATH="D:\\programming\\pycharm\\Masterarbeit\\MA\\config\\imm_cfg.cfg"
+CFGPATH="D:\\programming\\pycharm\\Masterarbeit\\MA\\config\\imm_test_cfg.cfg"
 
 class TestConfigurationParser(unittest.TestCase):
     def test_config_read(self):
