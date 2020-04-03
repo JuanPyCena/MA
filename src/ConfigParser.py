@@ -219,6 +219,7 @@ class ConfigurationParser(object):
 
         self.__code_variables = ParserLib.read_list(self.__config["GENERAL"][CODEVARIABLES])
         self.__required_parameters = ParserLib.read_list(self.__config["GENERAL"][REQUIREDPARAMETERS])
+        self.__known_variables.update(ParserLib.read_known_variables(self.__config["GENERAL"], required_params=[CODEVARIABLES, REQUIREDPARAMETERS]))
 
     ##############################################################################
 
@@ -230,8 +231,8 @@ class ConfigurationParser(object):
             raise KeyError("Section {section} does not exist"
                            .format(section="IMM"))
 
-        self.__known_variables         = ParserLib.read_known_variables(self.__config["IMM"],
-                                                                        required_params=self.__required_parameters)
+        self.__known_variables.update(ParserLib.read_known_variables(self.__config["IMM"],
+                                                                    required_params=self.__required_parameters))
         self.filters                  = ParserLib.read_list(self.__config["IMM"][cfg_params["filters"]])
         self.state_variables          = ParserLib.read_list(self.__config["IMM"][cfg_params["state"]])
         self.markov_transition_matrix = ParserLib.read_matrix(self.__config["IMM"][cfg_params["markov_transition_matrix"]],
@@ -306,7 +307,10 @@ class KalmanFilterConfigParser(object):
             "measurement_control_matrix": MEASUREMENTCONTROLMATRIX,
             "measurement_uncertainty_matrix": MEASUREMENTUNCERTAINTYMATRIX
         }
-        self.__known_variables.update(ParserLib.read_known_variables(self.__config[self.__filter_key]))
+        self.__known_variables.update(ParserLib.read_known_variables(self.__config[self.__filter_key],
+                                      required_params=[TRANSITIONMATRIX, INPUTCONTROLMATRIX, PROCESSNOISEMATRIX,
+                                                       COVARIANCEMATRIX, MEASUREMENTCONTROLMATRIX,
+                                                       MEASUREMENTUNCERTAINTYMATRIX]))
         self.__read_KF_filter_config(KF_cfg_params)
 
         # Verify that the loading has worked
@@ -316,15 +320,21 @@ class KalmanFilterConfigParser(object):
     ##############################################################################
 
     def __read_KF_filter_config(self, cfg_params):
-        # Read values which must be present
+        # check if variables are present in config be accessing them
         try:
-            self.transition_matrix          = ParserLib.read_matrix(self.__config[self.__filter_key][cfg_params["transition_matrix"]],
-                                                                    known_variables=self.__known_variables)
-            self.measurement_control_matrix = ParserLib.read_matrix(self.__config[self.__filter_key][cfg_params["measurement_control_matrix"]],
-                                                                    known_variables=self.__known_variables)
+            _ = self.__config[self.__filter_key][cfg_params["transition_matrix"]]
+            _ = self.__config[self.__filter_key][cfg_params["measurement_control_matrix"]]
         except:
             raise SyntaxError("Error while loading configuration for requested filter '{}' !!The following parameters must be configured: '{}'".
                               format(self.__filter_key, [TRANSITIONMATRIX, MEASUREMENTCONTROLMATRIX]))
+
+        # Read values which must be present
+        self.transition_matrix = ParserLib.read_matrix(self.__config[self.__filter_key][cfg_params["transition_matrix"]],
+                                                       code_variables=self.__code_variables,
+                                                       known_variables=self.__known_variables)
+        self.measurement_control_matrix = ParserLib.read_matrix(self.__config[self.__filter_key][cfg_params["measurement_control_matrix"]],
+                                                                code_variables=self.__code_variables,
+                                                                known_variables=self.__known_variables)
 
         # Optional parameters
         self.input_control_matrix           = self.__read_optional_matrix_parameters(INPUTCONTROLMATRIX,
@@ -399,7 +409,10 @@ class ExtendedKalmanFilterConfigParser(object):
             "measurement_control_matrix": MEASUREMENTCONTROLMATRIX,
             "measurement_uncertainty_matrix": MEASUREMENTUNCERTAINTYMATRIX
         }
-        self.__known_variables.update(ParserLib.read_known_variables(self.__config[self.__filter_key]))
+        self.__known_variables.update(ParserLib.read_known_variables(self.__config[self.__filter_key],
+                                      required_params=[TRANSITIONMATRIX, INPUTCONTROLMATRIX, PROCESSNOISEMATRIX,
+                                                       COVARIANCEMATRIX, MEASUREMENTCONTROLMATRIX,
+                                                       MEASUREMENTUNCERTAINTYMATRIX]))
         self.__read_EKF_filter_config(EKF_cfg_params)
 
         # Verify that the loading has worked
@@ -409,18 +422,22 @@ class ExtendedKalmanFilterConfigParser(object):
     ##############################################################################
 
     def __read_EKF_filter_config(self, cfg_params):
-        # Read values which must be present
+        # check if variables are present in config be accessing them
         try:
-            self.transition_matrix = ParserLib.read_matrix(
-                self.__config[self.__filter_key][cfg_params["transition_matrix"]],
-                known_variables=self.__known_variables)
-            self.measurement_control_matrix = ParserLib.read_matrix(
-                self.__config[self.__filter_key][cfg_params["measurement_control_matrix"]],
-                known_variables=self.__known_variables)
+            _ = self.__config[self.__filter_key][cfg_params["transition_matrix"]]
+            _ = self.__config[self.__filter_key][cfg_params["measurement_control_matrix"]]
         except:
             raise SyntaxError(
                 "Error while loading configuration for requested filter '{}' !!The following parameters must be configured: '{}'".
                 format(self.__filter_key, [TRANSITIONMATRIX, MEASUREMENTCONTROLMATRIX]))
+
+        # Read values which must be present
+        self.transition_matrix = ParserLib.read_matrix(self.__config[self.__filter_key][cfg_params["transition_matrix"]],
+                                                       code_variables=self.__code_variables,
+                                                       known_variables=self.__known_variables)
+        self.measurement_control_matrix = ParserLib.read_matrix(self.__config[self.__filter_key][cfg_params["measurement_control_matrix"]],
+                                                                code_variables=self.__code_variables,
+                                                                known_variables = self.__known_variables)
 
         # Optional parameters
         self.input_control_matrix = self.__read_optional_matrix_parameters(INPUTCONTROLMATRIX,
@@ -434,7 +451,8 @@ class ExtendedKalmanFilterConfigParser(object):
                                                                         cfg_params["covariance_matrix"],
                                                                         np.size(self.transition_matrix, 1))
         self.measurement_uncertainty_matrix = self.__read_optional_matrix_parameters(MEASUREMENTUNCERTAINTYMATRIX,
-                                                                                     cfg_params["measurement_uncertainty_matrix"],
+                                                                                     cfg_params[
+                                                                                         "measurement_uncertainty_matrix"],
                                                                                      self.transition_matrix.shape,
                                                                                      optional=np.zeros)
 
