@@ -1,5 +1,6 @@
 import unittest
 from src.ConfigParser import ConfigurationParser as CP
+from src.ConfigParser import ParserLib
 
 CFGPATH="D:\\programming\\pycharm\\Masterarbeit\\MA\\config\\imm_3models.cfg"
 
@@ -22,6 +23,9 @@ class TestConfigurationParser(unittest.TestCase):
         print(config.filter_configs["EKF2"].measurement_control_matrix)
         print(config.filter_configs["EKF2"].input_control_matrix)
         print(config.filter_configs["EKF2"].process_noise_matrix)
+
+        print(ParserLib.calculate_time_depended_matrix(config.filter_configs["KF"].process_noise_matrix, 2, "dt"))
+        print(ParserLib.calculate_time_depended_matrix(config.filter_configs["EKF1"].process_noise_matrix, 2, "dt"))
 
 if __name__ == '__main__':
     unittest.main()
