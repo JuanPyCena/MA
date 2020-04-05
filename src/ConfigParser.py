@@ -8,6 +8,7 @@ from src.Decorators import *
 
 ##############################################################################
 # Global variables
+EmptyArray = np.array([])
 CODEVARIABLES = "code_variables"
 REQUIREDPARAMETERS = "required_parameters"
 
@@ -35,6 +36,12 @@ MEASUREMENTUNCERTAINTYMATRIX = "measurement_uncertainty_matrix"
 class ParserLib(object):
     @staticmethod
     def read_list(cfg_list):
+        """
+        The function reads a list which is given as a raw string, checks for the correct syntax and saves it as a
+        python list
+        :param cfg_list: str - raw string which holds list information, may be nested
+        :return: read_list: list - list parsed of cfg_list, bracket syntax is checked. List may be nested
+        """
         # check for errors
         brackets = {"opening": ["["], "closing": ["]"]}
         ParserLib._check_for_errors(cfg_list, brackets=brackets)
@@ -64,6 +71,16 @@ class ParserLib(object):
 
     @staticmethod
     def read_matrix(cfg_matrix, **kwargs):
+        """
+        The function reads a matrix which is given as a raw string, checks for the correct syntax and saves it as a
+        numpy array. This matrix can hold various variables which can be given.
+        :param cfg_matrix: str - raw string which holds matrix information, may hold special variables which can
+                                 be replaced, or code variables known to the code which stay within the parsed matrix
+        :param kwargs: dict - can hold additional information about the "known_variables" which should be replaced
+                              within the matrix, or "code_variables" which should not be replaced within the matrix
+        :return: np.ndarray - matrix which holds float values read from the raw input string. May hold strings for
+                              codes variables
+        """
         read_matrix = np.array(ParserLib.read_list(cfg_matrix))
         # In case all values are numeric
         try:
@@ -103,6 +120,12 @@ class ParserLib(object):
 
     @staticmethod
     def read_known_variables(section, **kwargs):
+        """
+        The function reads all variables of a given section and save all except for a given list.
+        :param section: configparser.SectionProxy - holds the section of the config which should be read
+        :param kwargs: dict - holds the required parameters, those are not saved as known variables
+        :return: known_variables: dict - holds the known variables for the given section
+        """
         known_variables = {}
         required_params = []
         if "required_params" in kwargs.keys():
@@ -118,6 +141,15 @@ class ParserLib(object):
 
     @staticmethod
     def calculate_time_depended_matrix(matrix, time, time_variable):
+        """
+        This function replaces the time depended variable within a given matrix and replaces it with the actual value.
+        The timedependend variable may be part of an pytonic mathematical expression (e.g.: dt**4/4), this expression
+        is evaulated and the result is entered within the matrix
+        :param matrix: np.ndarray - holds data containing timedependend variables which should be replaced with numerical value
+        :param time: float - time which should be inserted into the matrix
+        :param time_variable: str - key for the time dependend variable, gets replaced by the actual time value
+        :return: matrix_replaced: np.ndarray - holds the matrix containing only float values
+        """
         matrix_replaced = np.zeros(matrix.shape)
         for row_col, elem in np.ndenumerate(matrix):
             try:
@@ -175,11 +207,16 @@ class ConfigurationParser(object):
 
     @typecheck(str)
     def __init__(self, **kwargs):
+        """
+        Creates a ConfigurationParser object which read the configuration of the IMM and all of its filters.
+        The configuration values are public varibles of this class
+        :param kwargs: dict - holds additional information for the cofniguration (e.g.: cfg_path)
+        """
         # public variables
         self.state_variables          = []  # list which holds of which type the variables are
         self.filters                  = []  # list which holds what kind of filters are used for the IMM
-        self.markov_transition_matrix = np.array([])  # quadratic matrix which defines the transitions between the modes
-        self.mode_probabilities       = np.array([])  # vector which holds the probability of each mode
+        self.markov_transition_matrix = EmptyArray  # quadratic matrix which defines the transitions between the modes
+        self.mode_probabilities       = EmptyArray  # vector which holds the probability of each mode
         self.filter_configs           = {}  # dcit which holds the configs of the filters used of by the IMM
 
         # private variables
@@ -283,8 +320,8 @@ class ConfigurationParser(object):
     def __loading_successfull(self):
         if self.filters == []: return False
         if self.state_variables == []: return False
-        if self.markov_transition_matrix == np.array([]): return False
-        if self.mode_probabilities == np.array([]): return False
+        if self.markov_transition_matrix == EmptyArray: return False
+        if self.mode_probabilities == EmptyArray: return False
         if self.filter_configs == {}: return False
 
         return True
@@ -296,6 +333,12 @@ class ConfigurationParser(object):
 class KalmanFilterConfigParser(object):
 
     def __init__(self, config, filter_key, **kwargs):
+        """
+        Creates a KalmanFilterConfigParser object which reads the section of the configuration of a KalmanFilter
+        :param config: ConfigurationParser.ConfigProxy - holds the read configuration
+        :param filter_key: str - holds the key used for this filters section
+        :param kwargs: dict - can hold additional information like "known_variables" or "code_variables"
+        """
         # public variables
         self.transition_matrix              = np.array([])  # F, quadratic matrix which defines the transitions of the state
         self.measurement_control_matrix     = np.array([])  # H, matrix which holds controls the measurement
@@ -383,12 +426,12 @@ class KalmanFilterConfigParser(object):
     ##############################################################################
 
     def __loading_successfull(self):
-        if self.transition_matrix == np.array([]): return False
-        if self.measurement_control_matrix == np.array([]): return False
-        if self.input_control_matrix == np.array([]): return False
-        if self.process_noise_matrix == np.array([]): return False
-        if self.covariance_matrix == np.array([]): return False
-        if self.measurement_uncertainty_matrix == np.array([]): return False
+        if self.transition_matrix == EmptyArray: return False
+        if self.measurement_control_matrix == EmptyArray: return False
+        if self.input_control_matrix == EmptyArray: return False
+        if self.process_noise_matrix == EmptyArray: return False
+        if self.covariance_matrix == EmptyArray: return False
+        if self.measurement_uncertainty_matrix == EmptyArray: return False
 
         return True
 
@@ -399,6 +442,12 @@ class KalmanFilterConfigParser(object):
 class ExtendedKalmanFilterConfigParser(object):
 
     def __init__(self, config, filter_key, **kwargs):
+        """
+        Creates a ExtendedKalmanFilterConfigParser object which reads the section of the configuration of a ExtendedKalmanFilter
+        :param config: ConfigurationParser.ConfigProxy - holds the read configuration
+        :param filter_key: str - holds the key used for this filters section
+        :param kwargs: dict - can hold additional information like "known_variables" or "code_variables"
+        """
         # public variables
         self.transition_matrix = np.array([])  # F, quadratic matrix which defines the transitions of the state
         self.measurement_control_matrix = np.array([])  # H, matrix which holds controls the measurement
@@ -488,12 +537,12 @@ class ExtendedKalmanFilterConfigParser(object):
     ##############################################################################
 
     def __loading_successfull(self):
-        if self.transition_matrix == np.array([]): return False
-        if self.measurement_control_matrix == np.array([]): return False
-        if self.input_control_matrix == np.array([]): return False
-        if self.process_noise_matrix == np.array([]): return False
-        if self.covariance_matrix == np.array([]): return False
-        if self.measurement_uncertainty_matrix == np.array([]): return False
+        if self.transition_matrix == EmptyArray: return False
+        if self.measurement_control_matrix == EmptyArray: return False
+        if self.input_control_matrix == EmptyArray: return False
+        if self.process_noise_matrix == EmptyArray: return False
+        if self.covariance_matrix == EmptyArray: return False
+        if self.measurement_uncertainty_matrix == EmptyArray: return False
 
         return True
 
