@@ -12,6 +12,18 @@ class KalmanFilter(object):
     def __init__(self, initial_state, inital_input, initial_measurement,
                  state_transition_matrix, control_input_matrix, process_noise_matrix,
                  initial_covariance_covariance_matrix, inital_measurement_function, inital_state_uncertainty):
+        """
+        Initializes a KalmanFilter object. For description of formulae, see: https://drive.google.com/open?id=1KRITwuqHBTCtndpCvFQknt3VB0lFSruw
+        :param initial_state: np.ndarray - intial state of the filter, x
+        :param inital_input: np.ndarray - initial input for the filter, u
+        :param initial_measurement: np.ndarray - initial measurement for the filter, z
+        :param state_transition_matrix: np.ndarray - matrix which defines the system beahviour, F
+        :param control_input_matrix: np.ndarray - matrix which control the influence of the input onto the state, G/B
+        :param process_noise_matrix: np.ndarray - matrix which controls the process noise, Q
+        :param initial_covariance_covariance_matrix: np.ndarray - initial covariance matrix, P
+        :param inital_measurement_function: np.ndarray - matrix which transposes the measurement into the state space, H
+        :param inital_state_uncertainty: np.ndarray - matrix which control the state uncertainty, R
+        """
         self.state                  = initial_state #x
         self.input                  = inital_input #u
         self.measurement            = initial_measurement #z
@@ -39,6 +51,7 @@ class KalmanFilter(object):
         """
         Predict next state (prior) using the Kalman filter state propagation
         equations.
+        :param input: np.ndarray - input to directly influence the state, default(None)
         """
         if input is not None:
             self.input = input
@@ -60,6 +73,10 @@ class KalmanFilter(object):
 
     @typecheck(np.ndarray)
     def update(self, z):
+        """
+        Update the filter state and covariance matrix using the (prior) made predictions
+        :param z: np.ndarray - measurement used to determine the quality of the prediction
+        """
         # y = z - Hx
         # error (residual) between measurement and prediction
         y = z - np.dot(self.measurement_function, self.state)
@@ -103,6 +120,18 @@ class ExtendedKalmanFilter(object):
     def __init__(self, initial_state, inital_input, initial_measurement,
                  state_transition_matrix, control_input_matrix, process_noise_matrix,
                  initial_covariance_covariance_matrix, inital_measurement_function, inital_state_uncertainty):
+        """
+        Initializes a KalmanFilter object. For further description, see: https://github.com/rlabbe/filterpy/blob/master/filterpy/kalman/EKF.py
+        :param initial_state: np.ndarray - intial state of the filter, x
+        :param inital_input: np.ndarray - initial input for the filter, u
+        :param initial_measurement: np.ndarray - initial measurement for the filter, z
+        :param state_transition_matrix: np.ndarray - matrix which defines the system beahviour, F
+        :param control_input_matrix: np.ndarray - matrix which control the influence of the input onto the state, G/B
+        :param process_noise_matrix: np.ndarray - matrix which controls the process noise, Q
+        :param initial_covariance_covariance_matrix: np.ndarray - initial covariance matrix, P
+        :param inital_measurement_function: np.ndarray - matrix which transposes the measurement into the state space, H
+        :param inital_state_uncertainty: np.ndarray - matrix which control the state uncertainty, R
+        """
         self.state                  = initial_state  # x
         self.input                  = inital_input  # u
         self.measurement            = initial_measurement  # z
@@ -173,8 +202,9 @@ class ExtendedKalmanFilter(object):
     @typecheck((np.ndarray, ))
     def predict(self, input=None):
         """
-        Predict next state (prior) using the Kalman filter state propagation
+        Predict next state (prior) using the Extended Kalman filter state propagation
         equations.
+        :param input: np.ndarray - input to directly influence the state, default(None)
         """
 
         if input is not None:
