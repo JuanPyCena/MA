@@ -5,12 +5,21 @@ from src.Decorators import *
 from src.Filters import KalmanFilter as KF
 from src.Filters import ExtendedKalmanFilter as EKF
 
+# Global Variables
+EmptyArray = np.array([])
+
 # This filter is designed after the formulas described in https://drive.google.com/open?id=1KRITwuqHBTCtndpCvFQknt3VB0lFSruw
 
 class InteractingMultipleModel(object):
 
     @typecheck(list, np.ndarray, np.ndarray)
     def __init__(self, filters, initial_mode_probabilities, markov_transition_matrix):
+        """
+        Initializes a InteractingMultipleModel object. For description of formulae, see: https://drive.google.com/open?id=1KRITwuqHBTCtndpCvFQknt3VB0lFSruw
+        :param filters: list - a list which holds the filter objects used by the IMM
+        :param initial_mode_probabilities: np.ndarray - a vector which holds the initial probilities of the various filter/modes
+        :param markov_transition_matrix: np.ndarray - a matrix which defines the probabilities of a filter/mode transition
+        """
         self.filters                  = filters  # a list off all filters
         self.mode_probabilities       = initial_mode_probabilities  # u(t) a vector holding the probabilities of all modes, gets updated each timestep
         self.markov_transition_matrix = markov_transition_matrix  # P_ij a matrix holding the transitioning probailities of all modes
@@ -128,7 +137,21 @@ class InteractingMultipleModel(object):
     ##############################################################################
 
     @typecheck(np.ndarray, (np.ndarray,))
-    def predict_update(self, measurement, input=np.array([]), **update_kwds):
+    def predict_update(self, measurement, input=None, **update_kwds):
+        """
+        This function makes a prediction of each filter using their respective predict function and updates their states
+        and covariances aswell
+        :param measurement: np.ndarray - holds the measurement of the sensor
+        :param input: np.ndarray - holds the input into to directly interact with the states of each filter, default(None)
+        :param update_kwds: dict - holds a list which can be used to parse several additional inputs to the update
+                                   function of the various filters
+                                   (e.g.: "kwds = [{}, {"HJacobian": self.H_of, "Hx": self.hx}]",
+                                   This example uses a Kalmanfilter as the first filter and an
+                                   ExtendedKalmanFilter as the seconds filter)
+        """
+        if input is None:
+            input = EmptyArray
+
         # Set mixed state to initial filter states
         if self.mixed_state == []:
             for idx, filter in enumerate(self.filters):
