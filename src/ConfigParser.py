@@ -117,6 +117,22 @@ class ParserLib(object):
     ##############################################################################
 
     @staticmethod
+    def calculated_time_depended_matrix(matrix, time, time_variable):
+        matrix_replaced = np.zeros(matrix.shape)
+        for row_col, elem in np.ndenumerate(matrix):
+            try:
+                elem = float(elem)
+            except:
+                if time_variable not in elem:
+                    RuntimeError("Cannot convert the elem '{}' at '{}', since it is no knwon time variable".format(elem, row_col))
+                replaced = elem.replace(time_variable, str(time))
+                elem = eval(replaced)
+            matrix_replaced[row_col] = elem
+        return matrix_replaced.astype(float)
+
+    ##############################################################################
+
+    @staticmethod
     def _check_for_errors(line, **kwargs):
         # check if all brackets are opened and closed correctly
         if "brackets" in kwargs.keys():
