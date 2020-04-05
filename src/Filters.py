@@ -3,6 +3,9 @@ import types
 
 from src.Decorators import *
 
+# Global Variables
+EmptyArray = np.array([])
+
 class KalmanFilter(object):
 
     @typecheck(np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray)
@@ -32,16 +35,16 @@ class KalmanFilter(object):
     ##############################################################################
 
     @typecheck((np.ndarray, ))
-    def predict(self, input=np.array([])):
+    def predict(self, input=None):
         """
         Predict next state (prior) using the Kalman filter state propagation
         equations.
         """
-        if not np.array_equal(input, np.array([])):
+        if input is not None:
             self.input = input
 
         # x = Fx + Gu
-        if self.input_function.shape != np.array([]).shape and self.input.shape != np.array([]).shape:
+        if self.input_function.shape != EmptyArray.shape and self.input.shape != EmptyArray.shape:
             self.state = np.dot(self.transition_function, self.state) + np.dot(self.input_function, self.input)
         else:
             self.state = np.dot(self.transition_function, self.state)
@@ -123,7 +126,7 @@ class ExtendedKalmanFilter(object):
     ##############################################################################
 
     @typecheck(np.ndarray, types.FunctionType, types.FunctionType, (tuple, ), (tuple, ), (np.ndarray, ))
-    def predict_update(self, z, HJacobian, Hx, args=(), hx_args=(), u=np.array([])):
+    def predict_update(self, z, HJacobian, Hx, args=(), hx_args=(), u=None):
         """ Performs the predict/update innovation of the extended Kalman
         filter.
         Parameters
@@ -156,7 +159,7 @@ class ExtendedKalmanFilter(object):
         if not isinstance(hx_args, tuple):
             hx_args = (hx_args,)
 
-        if not np.array_equal(u, np.array([])):
+        if u is not None:
             self.input = u
 
         # predict step
@@ -168,17 +171,17 @@ class ExtendedKalmanFilter(object):
     ##############################################################################
 
     @typecheck((np.ndarray, ))
-    def predict(self, input=np.array([])):
+    def predict(self, input=None):
         """
         Predict next state (prior) using the Kalman filter state propagation
         equations.
         """
 
-        if not np.array_equal(input, np.array([])):
+        if input is not None:
             self.input = input
 
         # x = Fx + Gu
-        if self.input_function.shape != np.array([]).shape and self.input.shape != np.array([]).shape:
+        if self.input_function.shape != EmptyArray.shape and self.input.shape != EmptyArray.shape:
             self.state = np.dot(self.transition_function, self.state) + np.dot(self.input_function, self.input)
         else:
             self.state = np.dot(self.transition_function, self.state)
@@ -194,7 +197,7 @@ class ExtendedKalmanFilter(object):
     ##############################################################################
 
     @typecheck(np.ndarray, types.FunctionType, types.FunctionType, (tuple, ), (tuple, ), (np.ndarray, ))
-    def update(self, z, HJacobian, Hx, args=(), hx_args=(), u=np.array([])):
+    def update(self, z, HJacobian, Hx, args=(), hx_args=(), u=None):
         """ Performs the predict/update innovation of the extended Kalman
         filter.
         Parameters
@@ -227,7 +230,7 @@ class ExtendedKalmanFilter(object):
         if not isinstance(hx_args, tuple):
             hx_args = (hx_args,)
 
-        if not np.array_equal(u, np.array([])):
+        if u is not None:
             self.input = u
 
         H = HJacobian(self.state, *args)
