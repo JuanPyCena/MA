@@ -117,7 +117,7 @@ class ParserLib(object):
     ##############################################################################
 
     @staticmethod
-    def calculated_time_depended_matrix(matrix, time, time_variable):
+    def calculate_time_depended_matrix(matrix, time, time_variable):
         matrix_replaced = np.zeros(matrix.shape)
         for row_col, elem in np.ndenumerate(matrix):
             try:
