@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 from math import sqrt
 
-from src.Filters import ExtendedKalmanFilter
+from src.filterlib.Filters import ExtendedKalmanFilter
 
 from filterpy.kalman import ExtendedKalmanFilter as ExtendedKalmanFilter_filterpy
 

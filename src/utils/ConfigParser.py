@@ -4,7 +4,7 @@ import re
 
 import numpy as np
 
-from src.Decorators import *
+from src.utils.Decorators import *
 
 ##############################################################################
 # Global variables
@@ -66,6 +66,15 @@ class ParserLib(object):
             return read_list[0]
 
         return read_list
+
+    @staticmethod
+    def write_list(np_list):
+        """
+        The function writes a list in form of a raw string.
+        :param np_list: list/np.array - python list or np.array which shall be made into a raw string list
+        :return: str - raw string list
+        """
+        return str(np_list.astype(float)).replace(" ", ", ")
 
     ##############################################################################
 

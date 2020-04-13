@@ -2,9 +2,9 @@ import unittest
 import numpy as np
 from math import sqrt
 
-from src.InteractingMultipleModel import InteractingMultipleModel
-from src.Filters import ExtendedKalmanFilter
-from src.Filters import KalmanFilter
+from src.filterlib.InteractingMultipleModel import InteractingMultipleModel
+from src.filterlib.Filters import ExtendedKalmanFilter
+from src.filterlib.Filters import KalmanFilter
 
 from filterpy.kalman import IMMEstimator as InteractingMultipleModel_filterpy
 from filterpy.kalman import KalmanFilter as KalmanFilter_filterpy

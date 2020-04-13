@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from src.Filters import KalmanFilter
+from src.filterlib.Filters import KalmanFilter
 
 from filterpy.kalman import KalmanFilter as KalmanFiler_filterpy
 

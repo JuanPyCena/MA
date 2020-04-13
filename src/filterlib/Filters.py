@@ -1,7 +1,7 @@
 import numpy as np
 import types
 
-from src.Decorators import *
+from src.utils.Decorators import *
 
 # Global Variables
 EmptyArray = np.array([])

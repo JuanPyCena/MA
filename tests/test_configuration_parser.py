@@ -1,6 +1,6 @@
 import unittest
-from src.ConfigParser import ConfigurationParser as CP
-from src.ConfigParser import ParserLib
+from src.utils.ConfigParser import ConfigurationParser as CP
+from src.utils.ConfigParser import ParserLib
 
 CFGPATH="D:\\programming\\pycharm\\Masterarbeit\\MA\\config\\imm_3models.cfg"
 

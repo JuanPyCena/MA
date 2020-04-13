@@ -1,12 +1,10 @@
 import numpy as np
-import types
 
-from src.Decorators import *
-from src.Filters import KalmanFilter as KF
-from src.Filters import ExtendedKalmanFilter as EKF
+from src.utils.Decorators import *
 
 # Global Variables
 EmptyArray = np.array([])
+EmptyList = []
 
 # This filter is designed after the formulas described in https://drive.google.com/open?id=1KRITwuqHBTCtndpCvFQknt3VB0lFSruw
 
@@ -24,8 +22,8 @@ class InteractingMultipleModel(object):
         self.mode_probabilities       = initial_mode_probabilities  # u(t) a vector holding the probabilities of all modes, gets updated each timestep
         self.markov_transition_matrix = markov_transition_matrix  # P_ij a matrix holding the transitioning probailities of all modes
 
-        self.mixed_state      = list()  # a list of numpy.array which holds the mixed state of all filters within the IMM
-        self.mixed_covariance = list()  # a list numpy.array which holds the mixed covariance matrix of all filters within the IMM
+        self.mixed_state      = []  # a list of numpy.array which holds the mixed state of all filters within the IMM
+        self.mixed_covariance = []  # a list numpy.array which holds the mixed covariance matrix of all filters within the IMM
 
         self.state      = np.zeros(self.filters[0].state.shape)  # the state of the IMM filter, x
         self.covariance = np.zeros(self.filters[0].covariance.shape)  # the covariance of the IMM filter, P
@@ -72,8 +70,8 @@ class InteractingMultipleModel(object):
             covariances.append(covariance)
 
         # Save the new mixed states now after all have been calculated
-        self.mixed_state      = list()
-        self.mixed_covariance = list()
+        self.mixed_state      = []
+        self.mixed_covariance = []
         for state in states:
             self.mixed_state.append(state)
 
@@ -153,12 +151,12 @@ class InteractingMultipleModel(object):
             input = EmptyArray
 
         # Set mixed state to initial filter states
-        if self.mixed_state == []:
+        if self.mixed_state == EmptyList:
             for idx, filter in enumerate(self.filters):
                 self.mixed_state.append(filter.state)
 
         # Set mixed covariance to initial filter covariance
-        if self.mixed_covariance == []:
+        if self.mixed_covariance == EmptyList:
             for idx, filter in enumerate(self.filters):
                 self.mixed_covariance.append(filter.covariance)
 
