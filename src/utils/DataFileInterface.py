@@ -1,4 +1,5 @@
 import csv
+import os.path as p
 
 import numpy as np
 
@@ -99,6 +100,64 @@ class DataFilteInterface(object):
 
                 writer.writerow({"measurement_data": measurement_data, 'state_data': state_data,
                                  'mode_probabilities': mode_probabilities, 'state_errors': state_errors})
+
+    ##############################################################################
+
+    @staticmethod
+    def write_test_data(test_data, test_file):
+        """
+        Writes test data, given as a dictionary, into a csv file to be saved.
+        :param test_data: dict - contains the time, position, velocity and acceleration of the test data
+        :param test_file: str - path to the test file which shall be written
+        """
+        time = test_data["time"]          # relative time of series
+        pos  = test_data["position"]      # vector of positions
+        vel  = test_data["velocity"]      # vector of velocities
+        acc  = test_data["acceleration"]  # vector of accelerations
+
+        with open(p.abspath(test_file), mode='w', newline="") as csv_file:
+            fieldnames = ["time", "position", "velocity", "acceleration"]
+            writer = csv.DictWriter(csv_file, fieldnames=fieldnames, delimiter=";")
+            writer.writeheader()
+
+            for line, _ in enumerate(time):
+                time_data = time[line]
+                pos_data  = ParserLib.write_list(pos[line])
+                vel_data  = ParserLib.write_list(vel[line])
+                acc_data  = ParserLib.write_list(acc[line])
+
+                writer.writerow({"time": time_data, 'position': pos_data,
+                                 'velocity': vel_data, 'acceleration': acc_data})
+
+
+    ##############################################################################
+
+    @staticmethod
+    def read_test_data(test_file):
+        """
+        Reads test data from a given csv file and saves the content into a dictionary
+        :param test_file: str - path to the test file which shall be read
+        :return: test_data - dict: contains the read data
+        """
+        time = []
+        pos  = []
+        vel  = []
+        acc  = []
+        with open(p.abspath(test_file), mode='r') as csv_file:
+            csv_reader = csv.DictReader(csv_file, delimiter=";")
+            for row in csv_reader:
+                time.append(row["time"])
+                pos.append(ParserLib.read_matrix(row["position"]))
+                vel.append(ParserLib.read_matrix(row["velocity"]))
+                acc.append(ParserLib.read_matrix(row["acceleration"]))
+
+        test_data = dict()
+        test_data["time"]         = time
+        test_data["position"]     = pos
+        test_data["velocity"]     = vel
+        test_data["acceleration"] = acc
+
+        return test_data
 
     ##############################################################################
 
