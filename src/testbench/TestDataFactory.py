@@ -159,55 +159,67 @@ class TestDataFactory(object):
         Creates a test set using combined motion, uniform linear -> constant turning -> constant accelaration
         """
         test_file = "D:\\programming\\pycharm\\Masterarbeit\\MA\\src\\testbench\\test_data\\test_data_combined_motion.csv"
-        time = np.linspace(0, 300, num=3001)
+        time = np.linspace(0, 200, num=2001)
 
         # functions to be evalutated by time
         def fun_pos_x(t, old_pos):
             if t < 50:
                 return t
             elif t >=50 and t < 150:
+                t -= 50
                 return np.cos(0.1*t) + old_pos
             else:
+                t -= 150
                 return (t*t)/2 + old_pos
 
         def fun_pos_y(t, old_pos):
             if t < 50:
                 return t
             elif t >=50 and t < 150:
+                t -= 50
                 return np.sin(0.1*t) + old_pos
             else:
+                t -= 150
                 return (t*t)/2 + old_pos
 
         def fun_vel_x(t):
             if t < 50:
                 return 1
             elif t >=50 and t < 150:
+                t -= 50
                 return -0.1*np.sin(0.1*t)
             else:
+                t -= 150
                 return t
 
         def fun_vel_y(t):
             if t < 50:
                 return 1
             elif t >= 50 and t < 150:
+                t -= 50
                 return 0.1*np.cos(0.1*t)
             else:
+                t -= 150
                 return t
 
         def fun_acc_x(t):
             if t < 50:
                 return 0
             elif t >=50 and t < 150:
+                t -= 50
                 return -0.1*0.1*np.cos(0.1*t)
             else:
+                t -= 150
                 return 1
 
         def fun_acc_y(t):
             if t < 50:
                 return 0
             elif t >= 50 and t < 150:
+                t -= 50
                 return -0.1*0.1*np.sin(0.1*t)
             else:
+                t -= 150
                 return 1
 
         pos_functions = [fun_pos_x, fun_pos_y]
