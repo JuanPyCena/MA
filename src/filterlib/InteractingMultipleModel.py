@@ -1,6 +1,7 @@
 import numpy as np
 
 from src.utils.Decorators import *
+from src.utils.ConfigParser import ParserLib
 
 # Global Variables
 EmptyArray = np.array([])
@@ -185,6 +186,28 @@ class InteractingMultipleModel(object):
 
         # Calculate te state and covariance of the filter
         self._calculate_IMM_state_covariance()
+
+    ##############################################################################
+
+    @typecheck(float)
+    def calculate_time_depended_matrices_of_filters(self, time_delta):
+        """
+        This function replaces the place holder "dt" within all matrices of all filters with a given float values
+        :param time_delta: float - time since last calculation step
+        """
+        for filter in self.filters:
+            filter.transition_function    = ParserLib.calculate_time_depended_matrix(filter.transition_function,
+                                                                                     time_delta, "dt")
+            filter.measurement_function   = ParserLib.calculate_time_depended_matrix(filter.measurement_function,
+                                                                                     time_delta, "dt")
+            filter.input_function         = ParserLib.calculate_time_depended_matrix(filter.input_function,
+                                                                                     time_delta, "dt")
+            filter.process_noise_function = ParserLib.calculate_time_depended_matrix(filter.process_noise_function,
+                                                                                     time_delta, "dt")
+            filter.covariance             = ParserLib.calculate_time_depended_matrix(filter.covariance,
+                                                                                     time_delta, "dt")
+            filter.state_uncertainty      = ParserLib.calculate_time_depended_matrix(filter.state_uncertainty,
+                                                                                     time_delta, "dt")
 
     # EOC
 # EOF
