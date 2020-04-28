@@ -174,7 +174,7 @@ class ParserLib(object):
                 elem = float(elem)
             except:
                 if time_variable not in elem:
-                    RuntimeError("Cannot convert the elem '{}' at '{}', since it is no knwon time variable".format(elem, row_col))
+                    RuntimeError("Cannot convert the elem '{}' at '{}', since it is no known time variable".format(elem, row_col))
                 replaced = elem.replace(time_variable, str(time))
                 elem = eval(replaced)
             matrix_replaced[row_col] = elem
