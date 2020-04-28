@@ -74,7 +74,16 @@ class ParserLib(object):
         :param np_list: list/np.array - python list or np.array which shall be made into a raw string list
         :return: str - raw string list
         """
-        return str(np_list.astype(float)).replace(" ", ", ")
+        list_str = str(np_list.astype(float))
+        # Remove brackets, leading and trailing whitespaces
+        list_str = list_str[1:-1].strip()
+        # Remove doubled whitespaces
+        list_str = " ".join(list_str.split())
+        # Make whitespace into whitspace plus comma to have a readable list
+        list_str = list_str.replace(" ", ", ")
+        # Add brackets again
+        list_str = "[" + list_str + "]"
+        return list_str
 
     ##############################################################################
 
