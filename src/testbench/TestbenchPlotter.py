@@ -33,8 +33,8 @@ class TestbenchPlotter(object):
         for data_point in measurement_data:
             pos, vel, acc = [], [], []
             pos.append(data_point[0])
-            pos.append(data_point[1])
-            vel.append(data_point[2])
+            vel.append(data_point[1])
+            pos.append(data_point[2])
             vel.append(data_point[3])
             acc.append(data_point[4])
             acc.append(data_point[5])
