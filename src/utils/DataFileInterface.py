@@ -87,7 +87,7 @@ class DataFilteInterface(object):
         """
         Writes the data saved in this object to the given file
         """
-        with open(self.__file_name, mode='w') as csv_file:
+        with open(self.__file_name, mode='w', newline="") as csv_file:
             fieldnames = ["measurement_data", "state_data", "mode_probabilities", "state_errors"]
             writer = csv.DictWriter(csv_file, fieldnames=fieldnames, delimiter=";")
             writer.writeheader()
