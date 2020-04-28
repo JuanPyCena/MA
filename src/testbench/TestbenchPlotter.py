@@ -19,9 +19,11 @@ class TestbenchPlotter(object):
         self.test_data = DFI.read_test_data(test_data_file)
 
         self.imm_data = dict()
-        # self.df_interface = DFI(imm_data_file)
-        # self.df_interface.read()
-        # self.__retrieve_data()
+        self.df_interface = DFI(imm_data_file)
+        self.df_interface.read()
+        self.__retrieve_data()
+
+    ##############################################################################
 
     def __retrieve_data(self):
         # measurement_data
