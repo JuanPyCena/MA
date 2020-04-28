@@ -135,7 +135,7 @@ class InteractingMultipleModel(object):
 
     ##############################################################################
 
-    @typecheck(np.ndarray, (np.ndarray,))
+    @typecheck(np.ndarray)
     def predict_update(self, measurement, input=None, **update_kwds):
         """
         This function makes a prediction of each filter using their respective predict function and updates their states
