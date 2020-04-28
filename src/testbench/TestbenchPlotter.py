@@ -27,7 +27,7 @@ class TestbenchPlotter(object):
 
     def __retrieve_data(self):
         # measurement_data
-        measurement_data = self.df_interface.measurement_data()
+        measurement_data = self.df_interface.measurement_data
         position_measurement, velocity_measurement, acceleration_measurement = [], [], []
 
         for data_point in measurement_data:
@@ -47,7 +47,7 @@ class TestbenchPlotter(object):
         self.imm_data["acceleration_measurement"] = acceleration_measurement
 
         # state_data
-        state_data = self.df_interface.state_data()
+        state_data = self.df_interface.state_data
         position_state, velocity_state, acceleration_state = [], [], []
 
         for data_point in state_data:
@@ -67,10 +67,10 @@ class TestbenchPlotter(object):
         self.imm_data["acceleration_state"] = acceleration_state
 
         # state_errors
-        state_errors = self.df_interface.state_errors()
+        state_errors = self.df_interface.state_errors
         position_errors, velocity_errors, acceleration_errors = [], [], []
 
-        for data_point in state_data:
+        for data_point in state_errors:
             pos, vel, acc = [], [], []
             pos.append(data_point[0])
             pos.append(data_point[1])
@@ -82,16 +82,17 @@ class TestbenchPlotter(object):
             velocity_errors.append(vel)
             acceleration_errors.append(acc)
 
-        self.imm_data["position_errors"]     = position_errors
-        self.imm_data["velocity_errors"]     = velocity_errors
-        self.imm_data["acceleration_errors"] = acceleration_errors
+        self.imm_data["position_error"]     = position_errors
+        self.imm_data["velocity_error"]     = velocity_errors
+        self.imm_data["acceleration_error"] = acceleration_errors
 
         # mode_probabilities
-        self.imm_data["mode_probabilities"] = self.df_interface.mode_probabilities()
+        self.imm_data["mode_probabilities"] = self.df_interface.mode_probabilities
 
     ##############################################################################
 
     def plot_test_data(self):
+        print("Start Plotting test set data")
         x_pos = [pos[0] for pos in self.test_data["position"]]
         y_pos = [pos[1] for pos in self.test_data["position"]]
         x_vel = [vel[0] for vel in self.test_data["velocity"]]
@@ -113,9 +114,12 @@ class TestbenchPlotter(object):
         plt.savefig(self.plot_name_test_data, dpi=1200)
         plt.show()
 
+        print("Finished Plotting test set data")
+
     ##############################################################################
 
     def plot_imm_data(self):
+        print("Start Plotting IMM data")
         x_pos_measurement = [pos[0] for pos in self.imm_data["position_measurement"]]
         y_pos_measurement = [pos[1] for pos in self.imm_data["position_measurement"]]
         x_vel_measurement = [vel[0] for vel in self.imm_data["velocity_measurement"]]
@@ -138,7 +142,7 @@ class TestbenchPlotter(object):
         mode_prob_2       = [prob[1] for prob in self.imm_data["mode_probabilities"]]
         mode_prob_3       = [prob[2] for prob in self.imm_data["mode_probabilities"]]
 
-        fig, axs = plt.subplots(4, 2)
+        fig, axs = plt.subplots(2, 4)
 
         axs[0, 0].plot(x_pos_measurement, y_pos_measurement)
         axs[0, 0].set_title('measurement_position')
@@ -149,14 +153,11 @@ class TestbenchPlotter(object):
         axs[0, 2].plot(x_acc_measurement, y_acc_measurement)
         axs[0, 2].set_title('measurement_acceleration')
 
-        axs[0, 3].plot(x_acc_measurement, y_acc_measurement)
-        axs[0, 3].set_title('measurement_acceleration')
-
-        axs[0, 4].plot(self.test_data["time"], mode_prob_1, label="Mode1")
-        axs[0, 4].plot(self.test_data["time"], mode_prob_2, label="Mode2")
-        axs[0, 4].plot(self.test_data["time"], mode_prob_2, label="Mode3")
-        axs[0, 4].set_title('mode_probabilities')
-        axs[0, 4].legend()
+        axs[0, 3].plot(self.test_data["time"], mode_prob_1, label="Mode1")
+        axs[0, 3].plot(self.test_data["time"], mode_prob_2, label="Mode2")
+        axs[0, 3].plot(self.test_data["time"], mode_prob_3, label="Mode3")
+        axs[0, 3].set_title('mode_probabilities')
+        axs[0, 3].legend()
 
         axs[1, 0].plot(x_pos_state, y_pos_state)
         axs[1, 0].set_title('state_position')
@@ -167,22 +168,22 @@ class TestbenchPlotter(object):
         axs[1, 2].plot(x_acc_state, y_acc_state)
         axs[1, 2].set_title('state_acceleration')
 
-        axs[1, 3].plot(x_acc_state, y_acc_state)
-        axs[1, 3].set_title('state_acceleration')
-
-        axs[1, 4].plot(x_pos_error, y_pos_error, label="Error Position")
-        axs[1, 4].plot(x_vel_error, y_vel_error, label="Error Velocity")
-        axs[1, 4].plot(x_acc_error, y_acc_error, label="Error Acceleration")
-        axs[1, 4].set_title('state_errors')
-        axs[1, 4].legend()
+        axs[1, 3].plot(x_pos_error, y_pos_error, label="Error Position")
+        axs[1, 3].plot(x_vel_error, y_vel_error, label="Error Velocity")
+        axs[1, 3].plot(x_acc_error, y_acc_error, label="Error Acceleration")
+        axs[1, 3].set_title('state_errors')
+        axs[1, 3].legend()
 
         fig.tight_layout()
         plt.savefig(self.plot_name_imm_data, dpi=1200)
         plt.show()
 
+        print("Finished Plotting IMM data")
+
     ##############################################################################
 
     def plot_combined(self):
+        print("Start Plotting test set and IMM data")
         x_pos_test_data = [pos[0] for pos in self.test_data["position"]]
         y_pos_test_data = [pos[1] for pos in self.test_data["position"]]
         x_vel_test_data = [vel[0] for vel in self.test_data["velocity"]]
@@ -225,5 +226,7 @@ class TestbenchPlotter(object):
         fig.tight_layout()
         plt.savefig(self.plot_name_combined_data, dpi=1200)
         plt.show()
+
+        print("Finished Plotting test set and IMM data")
 
 # EOF

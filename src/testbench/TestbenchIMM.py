@@ -57,10 +57,10 @@ class TestbenchIMM(object):
 
         # define common initial values
         self.initial_input       = np.array([0, 0, 0, 0, 0])
+        self.initial_state       = np.array([float(self.test_data_position[0][0]), float(self.test_data_position[0][1]),
+                                             float(self.test_data_velocity[0][0]), float(self.test_data_velocity[0][1]),
+                                             float(self.test_data_acceleration[0][0]), float(self.test_data_acceleration[0][1])])
         self.initial_measurement = self.initial_state
-        self.initial_state       = np.array([self.test_data_position[0][0], self.test_data_position[0][1],
-                                             self.test_data_velocity[0][0], self.test_data_velocity[0][1],
-                                             self.test_data_acceleration[0][0], self.test_data_acceleration[0][1]])
 
         # Keyword arguments needed for the EKF to work
         self.__ekf_kwds = []
@@ -78,25 +78,25 @@ class TestbenchIMM(object):
         """
         This functions runs the IMM simulation and saves the calculated data into a given csv file
         """
-        print("Start running TestbenchIMM")
-        last_update_time_stamp = 0
+        print("Start running Testbench IMM")
+        last_update_time_stamp = -0.1 - float(self.test_data_time[0])
         for idx, t in enumerate(self.test_data_time):
-            measurement = np.array([self.test_data_position[idx][0], self.test_data_position[idx][1],
-                                    self.test_data_velocity[idx][0], self.test_data_velocity[idx][1],
-                                    self.test_data_acceleration[idx][0], self.test_data_acceleration[idx][1]])
+            measurement = np.array([float(self.test_data_position[idx][0]), float(self.test_data_position[idx][1]),
+                                    float(self.test_data_velocity[idx][0]), float(self.test_data_velocity[idx][1]),
+                                    float(self.test_data_acceleration[idx][0]), float(self.test_data_acceleration[idx][1])])
 
             # Replace all placeholders of sub filters
-            self.imm.calculate_time_depended_matrices_of_filters(float(t - last_update_time_stamp))
+            self.imm.calculate_time_depended_matrices_of_filters(float(t) - last_update_time_stamp)
             # Save update time stamp
-            last_update_time_stamp = t
+            last_update_time_stamp = float(t)
             # Predict and update the state
             self.imm.predict_update(measurement, update_kwds=self.__ekf_kwds)
 
             state              = self.imm.state
             mode_probabilities = self.imm.mode_probabilities
-            test_data_state    = np.array([self.test_data_position[idx][0], self.test_data_position[idx][1],
-                                           self.test_data_velocity[idx][0], self.test_data_velocity[idx][1],
-                                           self.test_data_acceleration[idx][0], self.test_data_acceleration[idx][1]])
+            test_data_state    = np.array([float(self.test_data_position[idx][0]), float(self.test_data_position[idx][1]),
+                                           float(self.test_data_velocity[idx][0]), float(self.test_data_velocity[idx][1]),
+                                           float(self.test_data_acceleration[idx][0]), float(self.test_data_acceleration[idx][1])])
             state_error        = np.abs(np.subtract(test_data_state, state))
 
             self.imm_data_writer.measurement_data   = measurement
@@ -105,7 +105,7 @@ class TestbenchIMM(object):
             self.imm_data_writer.state_errors       = state_error
 
 
-        print("Finished running TestbenchIMM, saving data...")
+        print("Finished running Testbench IMM, saving data...")
         self.imm_data_writer.write()
         print("Data saved in: {}".format(self.imm_data_writer.file_name))
 
