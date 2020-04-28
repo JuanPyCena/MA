@@ -13,7 +13,7 @@ def main():
 
     plotter.plot_test_data()
     plotter.plot_imm_data()
-    plotter.plot_combined()
+    # plotter.plot_combined()
 
 if __name__ == "__main__":
     main()
