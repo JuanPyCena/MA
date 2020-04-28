@@ -9,10 +9,11 @@ def main():
 
     imm = TestbenchIMM(test_data, imm_data_file)
     imm.run()
-    # plotter = TestbenchPlotter(test_data_file, imm_data_file)
-    #
-    # plotter.plot_test_data()
-    # plotter.plot_imm_data()
+    plotter = TestbenchPlotter(test_data_file, imm_data_file)
+
+    plotter.plot_test_data()
+    plotter.plot_imm_data()
+    plotter.plot_combined()
 
 if __name__ == "__main__":
     main()
