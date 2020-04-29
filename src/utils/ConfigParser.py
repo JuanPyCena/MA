@@ -233,8 +233,8 @@ class ConfigurationParser(object):
         # public variables
         self.state_variables          = []  # list which holds of which type the variables are
         self.filters                  = []  # list which holds what kind of filters are used for the IMM
-        self.markov_transition_matrix = EmptyArray  # quadratic matrix which defines the transitions between the modes
-        self.mode_probabilities       = EmptyArray  # vector which holds the probability of each mode
+        self.markov_transition_matrix = np.array([])  # quadratic matrix which defines the transitions between the modes
+        self.mode_probabilities       = np.array([])  # vector which holds the probability of each mode
         self.filter_configs           = {}  # dcit which holds the configs of the filters used of by the IMM
 
         # private variables
