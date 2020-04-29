@@ -56,9 +56,9 @@ class TestbenchIMM(object):
         self.config = CP(cfg_path=CFGPATH)
 
         # define common initial values
-        self.initial_input       = np.array([0, 0, 0, 0, 0])
-        self.initial_state       = np.array([float(self.test_data_position[0][0]), float(self.test_data_position[0][1]),
-                                             float(self.test_data_velocity[0][0]), float(self.test_data_velocity[0][1]),
+        self.initial_input       = np.array([0, 0, 0, 0, 0, 0])
+        self.initial_state       = np.array([float(self.test_data_position[0][0]), float(self.test_data_velocity[0][0]),
+                                             float(self.test_data_position[0][1]), float(self.test_data_velocity[0][1]),
                                              float(self.test_data_acceleration[0][0]), float(self.test_data_acceleration[0][1])])
         self.initial_measurement = self.initial_state
 
@@ -79,10 +79,11 @@ class TestbenchIMM(object):
         This functions runs the IMM simulation and saves the calculated data into a given csv file
         """
         print("Start running Testbench IMM")
-        last_update_time_stamp = -0.1 - float(self.test_data_time[0])
-        for idx, t in enumerate(self.test_data_time):
-            measurement = np.array([float(self.test_data_position[idx][0]), float(self.test_data_position[idx][1]),
-                                    float(self.test_data_velocity[idx][0]), float(self.test_data_velocity[idx][1]),
+        last_update_time_stamp = float(self.test_data_time[0])
+        for idx, t in enumerate(self.test_data_time[1:]):
+            idx += 1
+            measurement = np.array([float(self.test_data_position[idx][0]), float(self.test_data_velocity[idx][0]),
+                                    float(self.test_data_position[idx][1]), float(self.test_data_velocity[idx][1]),
                                     float(self.test_data_acceleration[idx][0]), float(self.test_data_acceleration[idx][1])])
 
             # Replace all placeholders of sub filters
@@ -94,8 +95,8 @@ class TestbenchIMM(object):
 
             state              = self.imm.state
             mode_probabilities = self.imm.mode_probabilities
-            test_data_state    = np.array([float(self.test_data_position[idx][0]), float(self.test_data_position[idx][1]),
-                                           float(self.test_data_velocity[idx][0]), float(self.test_data_velocity[idx][1]),
+            test_data_state    = np.array([float(self.test_data_position[idx][0]), float(self.test_data_velocity[idx][0]),
+                                           float(self.test_data_position[idx][1]), float(self.test_data_velocity[idx][1]),
                                            float(self.test_data_acceleration[idx][0]), float(self.test_data_acceleration[idx][1])])
             state_error        = np.abs(np.subtract(test_data_state, state))
 
