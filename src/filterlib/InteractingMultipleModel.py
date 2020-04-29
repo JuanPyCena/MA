@@ -87,12 +87,12 @@ class InteractingMultipleModel(object):
         # Calculate likelihood functions
         for j, filter in enumerate(self.filters):
             # S = HPH' + R
-            HP    = np.dot(filter.measurement_function, self.mixed_covariance[j])
+            HP    = np.dot(filter.measurement_function, filter.covariance)
             S     = np.dot(HP, filter.measurement_function.T) + filter.state_uncertainty
             S_inv = np.linalg.inv(S)
 
             # y = Z - Hx
-            y     = measurement - np.dot(filter.measurement_function, self.mixed_state[j])
+            y     = measurement - np.dot(filter.measurement_function, filter.state)
 
             # d^2 = y'S^-1y
             y_TS     = np.dot(y.T, S_inv)
@@ -112,7 +112,13 @@ class InteractingMultipleModel(object):
             for lambda_i in lambdas:
                 c += mode_probability * lambda_i
 
-            new_mode_probabilities.append(mode_probability * lambdas[j] / c)
+            prob = mode_probability * lambdas[j] / c
+
+            # Catch numerical instability
+            if prob <= 1e-9:
+                prob = 1e-9
+
+            new_mode_probabilities.append(prob)
 
         # update mode probabilities
         self.mode_probabilities = np.array(new_mode_probabilities)
