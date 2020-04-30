@@ -117,7 +117,7 @@ class TestbenchPlotter(object):
         axs[1, 1].set_xlabel("x")
         axs[1, 1].set_ylabel("y")
         fig.tight_layout()
-        plt.savefig(self.plot_name_test_data, dpi=400)
+        plt.savefig(self.plot_name_test_data, dpi=100)
         plt.show()
 
         print("Finished Plotting test set data")
@@ -165,7 +165,7 @@ class TestbenchPlotter(object):
         axs[2].set_ylabel("y")
 
         fig.tight_layout()
-        plt.savefig(self.plot_name_imm_data + "_measurements", dpi=400)
+        plt.savefig(self.plot_name_imm_data + "_measurements", dpi=100)
         plt.show()
 
         fig, axs = plt.subplots(3)
@@ -183,7 +183,7 @@ class TestbenchPlotter(object):
         axs[2].set_title('state_acceleration')
         axs[2].set_xlabel("x")
         axs[2].set_ylabel("y")
-        plt.savefig(self.plot_name_imm_data + "_state", dpi=400)
+        plt.savefig(self.plot_name_imm_data + "_state", dpi=100)
         plt.show()
 
         fig, axs = plt.subplots(1)
@@ -198,7 +198,7 @@ class TestbenchPlotter(object):
         axs.legend()
 
         fig.tight_layout()
-        plt.savefig(self.plot_name_imm_data + "_mode", dpi=400)
+        plt.savefig(self.plot_name_imm_data + "_mode", dpi=100)
         plt.show()
 
         fig, axs = plt.subplots(3)
@@ -228,7 +228,7 @@ class TestbenchPlotter(object):
         axs[2].legend()
 
         fig.tight_layout()
-        plt.savefig(self.plot_name_imm_data + "_errors", dpi=400)
+        plt.savefig(self.plot_name_imm_data + "_errors", dpi=100)
         plt.show()
 
         print("Finished Plotting IMM data")
@@ -274,7 +274,7 @@ class TestbenchPlotter(object):
         axs[2].legend()
 
         fig.tight_layout()
-        plt.savefig(self.plot_name_combined_data, dpi=400)
+        plt.savefig(self.plot_name_combined_data, dpi=100)
         plt.show()
 
         print("Finished Plotting test set and IMM data")
