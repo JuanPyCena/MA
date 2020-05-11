@@ -2,6 +2,7 @@ import numpy as np
 
 from src.utils.Decorators import *
 from src.utils.ConfigParser import ParserLib
+from src.utils.logmod import Logger
 
 # Global Variables
 EmptyArray = np.array([])
@@ -19,6 +20,14 @@ class InteractingMultipleModel(object):
         :param initial_mode_probabilities: np.ndarray - a vector which holds the initial probilities of the various filter/modes
         :param markov_transition_matrix: np.ndarray - a matrix which defines the probabilities of a filter/mode transition
         """
+        # start logging
+        self.log = Logger()
+        self.log.write_to_log("---------------------Start IMM---------------------")
+
+        # delete logfiles that are older then one day
+        if self.log.delete_old_logfiles():
+            self.log.write_to_log("INFO: Old logfile removed")
+
         self.filters                  = filters  # a list off all filters
         self.mode_probabilities       = initial_mode_probabilities  # u(t) a vector holding the probabilities of all modes, gets updated each timestep
         self.markov_transition_matrix = markov_transition_matrix  # P_ij a matrix holding the transitioning probailities of all modes
@@ -139,17 +148,21 @@ class InteractingMultipleModel(object):
             filter.state      = self.mixed_state[idx]
             filter.covariance = self.mixed_covariance[idx]
             filter.predict(input)
+            self.log.write_to_log("INFO: {} state after prediction: {}".format(filter, filter.state))
 
         # Calculate the IMM state after prediction of each filter has finished
         self._calc_imm_state()
         self.state_prior      = self.state.copy()
         self.covariance_prior = self.covariance.copy()
 
+        self.log.write_to_log("INFO: IMM state after prediction: {}".format(self.state_prior))
+
         for idx, filter in enumerate(self.filters):
             kwds = dict()
             if "update_kwds" in update_kwds.keys():
                 kwds = update_kwds["update_kwds"][idx]
             filter.update(measurement, **kwds)
+            self.log.write_to_log("INFO: {} state after update: {}".format(filter, filter.state))
             self.likelihood[idx] = filter.likelihood
 
         # Calculate the mode probabilities and recalculate the probability matrix
@@ -159,6 +172,8 @@ class InteractingMultipleModel(object):
         self._calc_imm_state()
         self.state_post      = self.state.copy()
         self.covariance_post = self.covariance.copy()
+
+        self.log.write_to_log("INFO: IMM state after update: {}".format(self.state_prior))
     ##############################################################################
 
     @typecheck(float)
