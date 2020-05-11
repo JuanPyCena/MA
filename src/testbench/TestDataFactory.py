@@ -2,6 +2,16 @@ from src.utils.DataFileInterface import DataFilteInterface as FileReadWrite
 from src.utils.Decorators import *
 import numpy as np
 
+"""
+How to use this class:
+Create a static function 'test_setX()'. This function uses lambda/nested time depended functions to represent movement,
+velocity and acceleration of the test data. The veloctiy and acceleration must be analytical derivatives of the position.
+To add noise into the data additive gaussion noise can be added manually within the function 'test_setX()'.
+
+The function then must call the function 'create_test_data', or a similar function, to actually create the csv file for the test data.
+
+Using the 'main' of this class the 'test_setX()' function may be called.
+"""
 
 # Class only serves as namespace, all functions are static
 class TestDataFactory(object):
