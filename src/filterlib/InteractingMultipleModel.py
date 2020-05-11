@@ -22,6 +22,8 @@ class InteractingMultipleModel(object):
         self.filters                  = filters  # a list off all filters
         self.mode_probabilities       = initial_mode_probabilities  # u(t) a vector holding the probabilities of all modes, gets updated each timestep
         self.markov_transition_matrix = markov_transition_matrix  # P_ij a matrix holding the transitioning probailities of all modes
+        self.likelihood               = np.zeros(self.mode_probabilities.shape)  # a vector to hold the likelihood of each filter
+        self.c                        = np.zeros(self.mode_probabilities.shape) # vector used for the calculation of the mode probabilities
 
         self.mixed_state      = []  # a list of numpy.array which holds the mixed state of all filters within the IMM
         self.mixed_covariance = []  # a list numpy.array which holds the mixed covariance matrix of all filters within the IMM
@@ -29,115 +31,88 @@ class InteractingMultipleModel(object):
         self.state      = np.zeros(self.filters[0].state.shape)  # the state of the IMM filter, x
         self.covariance = np.zeros(self.filters[0].covariance.shape)  # the covariance of the IMM filter, P
 
+        self.state_prior      = np.zeros(self.filters[0].state.shape)  # the state of the IMM filter after the prediction, x
+        self.covariance_prior = np.zeros(self.filters[0].covariance.shape)  # the covariance of the IMM filter after the prediction, P
+        self.state_post       = np.zeros(self.filters[0].state.shape)  # the state of the IMM filter after the update, x
+        self.covariance_post  = np.zeros(self.filters[0].covariance.shape)  # the covariance of the IMM filter after the update, P
+
         # Mode probability matrix, U
         self.mode_probability_matrix = np.divide(np.ones(self.markov_transition_matrix.shape),
                                                  np.size(self.markov_transition_matrix))
 
+        # calculated initial values
+        self._calc_mode_probability_matrix()
+        self._calc_imm_state()
+
     ##############################################################################
 
-    def _calc_mode_probability_matrix_matrix(self):
-        for col_num in range(0, np.size(self.markov_transition_matrix, 0)):  # col_num: j
-            c = 0
-            for mode_num, mode_probabilty in enumerate(self.mode_probabilities):  # mode_num: i
-                markov_transition_probability = self.markov_transition_matrix[mode_num, col_num]
-                c += markov_transition_probability * mode_probabilty
+    def _calc_mode_probability_matrix(self):
+        """
+        Compute the mixing probability for each filter.
+        """
+        self.c = np.dot(self.mode_probabilities, self.markov_transition_matrix)
+        # get num of cols and rows of transition matrix
+        M, N = np.size(self.markov_transition_matrix, 0), np.size(self.markov_transition_matrix, 1)
 
-            for mode_num, mode_probabilty in enumerate(self.mode_probabilities):  # mode_num: i
-                markov_transition_probability = self.markov_transition_matrix[mode_num, col_num]
-                self.mode_probability_matrix[mode_num][col_num] = markov_transition_probability * mode_probabilty / c
+        # Calculate mode probability matrix according to filterpy.IMM
+        for i in range(M):
+            for j in range(N):
+                self.mode_probability_matrix[i, j] = \
+                    (self.markov_transition_matrix[i, j] * self.mode_probabilities[i]) / self.c[j]
+
+    ##############################################################################
+
+    def _calc_imm_state(self):
+        """
+        Computes the IMM's mixed state estimate from each filter using
+        the mode probability to weight the estimates.
+        """
+
+        # The IMM mixed state is the sum of all filter state weighted by its probability
+        self.state.fill(0)
+        for filter, probability in zip(self.filters, self.mode_probabilities):
+            self.state += filter.state * probability
+
+        # The covariance is the sum of each covariance + the square of the state difference of each
+        # filter to the mixed state weighted by its probability
+        self.covariance.fill(0)
+        for filter, probability in zip(self.filters, self.mode_probabilities):
+            # the difference in state between the IMM and each filter is used to calculate the covariance matrix
+            state_diff = filter.state - self.state
+            # P_imm = sum(mu[i] *(state_diff * state_diff' + P_filter))
+            self.covariance += probability * (np.outer(state_diff) + filter.covariance)
 
     ##############################################################################
 
     def _calc_mixed_state(self):
-        self._calc_mode_probability_matrix_matrix()
+        """
+        Calculate the mixed states and covariances of the filters
+        """
+        xs, Ps = [], []
+        for i, (f_i, w_i) in enumerate(zip(self.filters, self.mode_probability_matrix.T)):
+            x = np.zeros(self.state.shape)
+            for filter, probability_j in zip(self.filters, w_i):
+                x += filter.state * probability_j
+            xs.append(x)
 
-        states      = []
-        covariances = []
-        for j, filter in enumerate(self.filters):
-            state      = np.zeros(filter.state.shape)
-            covariance = np.zeros(filter.covariance.shape)
+            P = np.zeros(self.covariance.shape)
+            for filter, probability_j in zip(self.filters, w_i):
+                state_diff = filter.state - x
+                P += probability_j * (np.outer(state_diff, state_diff) + filter.covariance)
+            Ps.append(P)
 
-            for i, mixed_state in enumerate(self.mixed_state):
-                state += mixed_state * self.mode_probability_matrix[i,j]
-
-            # this need to be done in a separate loop because the state has to be calculated before hand
-            for i, mixed_covariance in enumerate(self.mixed_covariance):
-                covariance += self.mode_probability_matrix[i,j] * (mixed_covariance +
-                                                                   np.dot((self.mixed_state[i] - state),
-                                                                          (self.mixed_state[i] - state).T))
-
-            # need to save this in a temporary list since we do not want to alter the mixed_state yet
-            states.append(state)
-            covariances.append(covariance)
-
-        # Save the new mixed states now after all have been calculated
-        self.mixed_state      = []
-        self.mixed_covariance = []
-        for state in states:
-            self.mixed_state.append(state)
-
-        for covariance in covariances:
-            self.mixed_covariance.append(covariance)
-
-    ##############################################################################
-    @typecheck(np.ndarray)
-    def _calc_mode_probability(self, measurement):
-        lambdas = []
-
-        # Calculate likelihood functions
-        for j, filter in enumerate(self.filters):
-            # S = HPH' + R
-            HP    = np.dot(filter.measurement_function, filter.covariance)
-            S     = np.dot(HP, filter.measurement_function.T) + filter.state_uncertainty
-            S_inv = np.linalg.inv(S)
-
-            # y = Z - Hx
-            y     = measurement - np.dot(filter.measurement_function, filter.state)
-
-            # d^2 = y'S^-1y
-            y_TS     = np.dot(y.T, S_inv)
-            d_square = np.dot(y_TS, y)
-
-            # lambda_j = (exp((-d^2)/2)/(square(2*pi*det(S))))
-            e = np.exp((-d_square)/2)
-            lambda_j = e / (np.sqrt(2 * np.pi * np.linalg.det(S)))
-            lambdas.append(lambda_j)
-
-        # Recalculate mode probabilities based on previous mode probabilities and current likelihood functions
-        # u_j(t) = (u_j(t-1)*lambda_j(t)) / (sum(u_j(t-1)*lambda_j(t))
-        new_mode_probabilities = []
-        for j, mode_probability in enumerate(self.mode_probabilities):
-
-            c = 0
-            for lambda_i in lambdas:
-                c += mode_probability * lambda_i
-
-            prob = mode_probability * lambdas[j] / c
-
-            # Catch numerical instability
-            if prob <= 1e-9:
-                prob = 1e-9
-
-            new_mode_probabilities.append(prob)
-
-        # update mode probabilities
-        self.mode_probabilities = np.array(new_mode_probabilities)
+        self.mixed_state      = xs
+        self.mixed_covariance = Ps
 
     ##############################################################################
 
-    def _calculate_IMM_state_covariance(self):
-        state = np.zeros(self.filters[0].state.shape)
-        covariance = np.zeros(self.filters[0].covariance.shape)
-        for idx, filter in enumerate(self.filters):
-            state += self.mode_probabilities[idx] * filter.state
-
-        # this need to be done in a separate loop because the state has to be calculated before hand
-        for idx, filter in enumerate(self.filters):
-            covariance += self.mode_probabilities[idx] * (filter.covariance +
-                                                        np.dot((filter.state - state), (filter.state - state).T))
-
-        self.state      = state
-        self.covariance = covariance
+    def _calc_mode_probability(self):
+        self.mode_probabilities = self.c * self.likelihood
+        # normalise mode probabilities to not be greater than 1
+        self.mode_probabilities /= np.sum(self.mode_probabilities)
+        if np.sum(self.mode_probabilities) > 1:
+            raise ValueError("The sum of all mode probabilities is greater than 1: mode probabilities {}"
+                             .format(self.mode_probabilities))
 
     ##############################################################################
 
@@ -155,44 +130,35 @@ class InteractingMultipleModel(object):
                                    ExtendedKalmanFilter as the seconds filter)
         """
         if input is None:
-            input = EmptyArray
+            input = np.array([])
 
-        # Set mixed state to initial filter states
-        if self.mixed_state == EmptyList:
-            for idx, filter in enumerate(self.filters):
-                self.mixed_state.append(filter.state)
-
-        # Set mixed covariance to initial filter covariance
-        if self.mixed_covariance == EmptyList:
-            for idx, filter in enumerate(self.filters):
-                self.mixed_covariance.append(filter.covariance)
-
-        # Get mixed state before prediction
         self._calc_mixed_state()
+
+        for idx, filter in enumerate(self.filters):
+            # update filter state and covariance to current mixed values
+            filter.state      = self.mixed_state[idx]
+            filter.covariance = self.mixed_covariance[idx]
+            filter.predict(input)
+
+        # Calculate the IMM state after prediction of each filter has finished
+        self._calc_imm_state()
+        self.state_prior      = self.state.copy()
+        self.covariance_prior = self.covariance.copy()
 
         for idx, filter in enumerate(self.filters):
             kwds = dict()
             if "update_kwds" in update_kwds.keys():
                 kwds = update_kwds["update_kwds"][idx]
-
-            # update filter state and covariance to current mixed values
-            filter.state      = self.mixed_state[idx]
-            filter.covariance = self.mixed_covariance[idx]
-
-            filter.predict(input)
             filter.update(measurement, **kwds)
+            self.likelihood[idx] = filter.likelihood
 
-            # update mixed_state and mixed_covariance to the updated filter values
-            self.mixed_state[idx]      = filter.state
-            self.mixed_covariance[idx] = filter.covariance
+        # Calculate the mode probabilities and recalculate the probability matrix
+        self._calc_mode_probability()
+        self._calc_mode_probability_matrix()
 
-
-        # Calculate the mode probability for the state and covariance update
-        self._calc_mode_probability(measurement)
-
-        # Calculate te state and covariance of the filter
-        self._calculate_IMM_state_covariance()
-
+        self._calc_imm_state()
+        self.state_post      = self.state.copy()
+        self.covariance_post = self.covariance.copy()
     ##############################################################################
 
     @typecheck(float)
