@@ -57,6 +57,11 @@ class KalmanFilter(object):
 
     ##############################################################################
 
+    def __repr__(self):
+        return "Kalman Filter"
+
+    ##############################################################################
+
     @typecheck((np.ndarray, ))
     def predict(self, input=None):
         """
@@ -213,6 +218,11 @@ class ExtendedKalmanFilter(object):
         # Private variables for saving the likelihood of this filter
         self._log_likelihood = log(sys.float_info.min)
         self._likelihood     = sys.float_info.min
+
+    ##############################################################################
+
+    def __repr__(self):
+        return "Extended Kalman Filter"
 
     ##############################################################################
 
