@@ -1,5 +1,8 @@
 import numpy as np
 import types
+import sys
+from math import log, exp
+from scipy.stats import multivariate_normal
 
 from src.utils.Decorators import *
 
@@ -24,15 +27,19 @@ class KalmanFilter(object):
         :param inital_measurement_function: np.ndarray - matrix which transposes the measurement into the state space, H
         :param inital_state_uncertainty: np.ndarray - matrix which control the state uncertainty, R
         """
-        self.state                  = initial_state #x
-        self.input                  = inital_input #u
-        self.measurement            = initial_measurement #z
-        self.transition_function    = state_transition_matrix #F
-        self.input_function         = control_input_matrix #G
-        self.process_noise_function = process_noise_matrix #Q
-        self.covariance             = initial_covariance_covariance_matrix #P
-        self.measurement_function   = inital_measurement_function #H
-        self.state_uncertainty      = inital_state_uncertainty #R
+        self.state                  = initial_state                         # x
+        self.input                  = inital_input                          # u
+        self.measurement            = initial_measurement                   # z
+        self.transition_function    = state_transition_matrix               # F
+        self.input_function         = control_input_matrix                  # G
+        self.process_noise_function = process_noise_matrix                  # Q
+        self.covariance             = initial_covariance_covariance_matrix  # P
+        self.measurement_function   = inital_measurement_function           # H
+        self.state_uncertainty      = inital_state_uncertainty              # R
+
+        # Variables to save the system uncertainty projected into the measurment space. To be used in likelyhood calculations
+        self.system_uncertainty         = None  # S
+        self.inverse_system_uncertainty = None  # inv(S)
 
         # Set values prior to prediction
         # these will always be a copy of state,covariance after predict() is called
@@ -43,6 +50,10 @@ class KalmanFilter(object):
         # these will always be a copy of state,covariance after update() is called
         self.state_post         = self.state.copy()
         self.covariance_post    = self.covariance.copy()
+
+        # Private variables for saving the likelihood of this filter
+        self._log_likelihood = log(sys.float_info.min)
+        self._likelihood     = sys.float_info.min
 
     ##############################################################################
 
@@ -89,6 +100,10 @@ class KalmanFilter(object):
         S = np.dot(self.measurement_function, PH_transpose) + self.state_uncertainty
         S_inv = np.linalg.inv(S)
 
+        # Save system uncertainty into member variables
+        self.system_uncertainty = S
+        self.inverse_system_uncertainty = S_inv
+
         # K = PH'inv(S)
         # map system uncertainty into kalman gain
         K = np.dot(PH_transpose, S_inv)
@@ -109,6 +124,45 @@ class KalmanFilter(object):
         self.measurement     = z.copy()
         self.state_post      = self.state.copy()
         self.covariance_post = self.covariance.copy()
+
+        # set to None to force recompute
+        self._log_likelihood = None
+        self._likelihood     = None
+
+    ##############################################################################
+
+    @property
+    def log_likelihood(self):
+        """
+        Computes the log_likelyhood of the last measurement based on the system uncertainty, S.
+        :return: float - log likelihood of last measurement of this filter
+        """
+
+        if self._log_likelihood is None:
+            # Make sure that the state vector is flatten, should be anyway but it does not hurt to make sure
+            flat_x = np.asarray(self.state).flatten()
+            # Set mean to None, this is treated as having the zero vector being the mean.
+            flat_mean = None
+            self._log_likelihood = multivariate_normal.logpdf(flat_x, flat_mean, cov=self.system_uncertainty, allow_singular=True)
+        return self._log_likelihood
+
+    ##############################################################################
+
+    @property
+    def likelihood(self):
+        """
+        Computed from the log-likelihood. The log-likelihood can be very
+        small,  meaning a large negative value such as -28000. Taking the
+        exp() of that results in 0.0, which can break typical algorithms
+        which multiply by this value, so by default we always return a
+        number >= sys.float_info.min.
+        :return: float - likelihood of last measurement of this filter
+        """
+        if self._likelihood is None:
+            self._likelihood = exp(self.log_likelihood)
+            if self._likelihood == 0:
+                self._likelihood = sys.float_info.min
+        return self._likelihood
 
     #EOC
 
@@ -132,15 +186,19 @@ class ExtendedKalmanFilter(object):
         :param inital_measurement_function: np.ndarray - matrix which transposes the measurement into the state space, H
         :param inital_state_uncertainty: np.ndarray - matrix which control the state uncertainty, R
         """
-        self.state                  = initial_state  # x
-        self.input                  = inital_input  # u
-        self.measurement            = initial_measurement  # z
-        self.transition_function    = state_transition_matrix  # F
-        self.input_function         = control_input_matrix  # G
-        self.process_noise_function = process_noise_matrix  # Q
+        self.state                  = initial_state                         # x
+        self.input                  = inital_input                          # u
+        self.measurement            = initial_measurement                   # z
+        self.transition_function    = state_transition_matrix               # F
+        self.input_function         = control_input_matrix                  # G
+        self.process_noise_function = process_noise_matrix                  # Q
         self.covariance             = initial_covariance_covariance_matrix  # P
-        self.measurement_function   = inital_measurement_function  # H
-        self.state_uncertainty      = inital_state_uncertainty  # R
+        self.measurement_function   = inital_measurement_function           # H
+        self.state_uncertainty      = inital_state_uncertainty              # R
+
+        # Variables to save the system uncertainty projected into the measurment space. To be used in likelyhood calculations
+        self.system_uncertainty         = None  # S
+        self.inverse_system_uncertainty = None  # inv(S)
 
         # Set values prior to prediction
         # these will always be a copy of state,covariance after predict() is called
@@ -151,6 +209,10 @@ class ExtendedKalmanFilter(object):
         # these will always be a copy of state,covariance after update() is called
         self.state_post = self.state.copy()
         self.covariance_post = self.covariance.copy()
+
+        # Private variables for saving the likelihood of this filter
+        self._log_likelihood = log(sys.float_info.min)
+        self._likelihood     = sys.float_info.min
 
     ##############################################################################
 
@@ -271,6 +333,10 @@ class ExtendedKalmanFilter(object):
         S_inv        = np.linalg.inv(S)
         K            = np.dot(PH_transpose, S_inv)
 
+        # Save system uncertainty into member variables
+        self.system_uncertainty = S
+        self.inverse_system_uncertainty = S_inv
+
         y          = z - Hx(self.state, *hx_args)
         self.state = self.state + np.dot(K, y)
 
@@ -283,6 +349,46 @@ class ExtendedKalmanFilter(object):
         self.measurement     = np.copy(z)
         self.state_post      = np.copy(self.state)
         self.covariance_post = np.copy(self.covariance)
+
+        # set to None to force recompute
+        self._log_likelihood = None
+        self._likelihood = None
+
+    ##############################################################################
+
+    @property
+    def log_likelihood(self):
+        """
+        Computes the log_likelyhood of the last measurement based on the system uncertainty, S.
+        :return: float - log likelihood of last measurement of this filter
+        """
+
+        if self._log_likelihood is None:
+            # Make sure that the state vector is flatten, should be anyway but it does not hurt to make sure
+            flat_x = np.asarray(self.state).flatten()
+            # Set mean to None, this is treated as having the zero vector being the mean.
+            flat_mean = None
+            self._log_likelihood = multivariate_normal.logpdf(flat_x, flat_mean, cov=self.system_uncertainty,
+                                                              allow_singular=True)
+        return self._log_likelihood
+
+    ##############################################################################
+
+    @property
+    def likelihood(self):
+        """
+        Computed from the log-likelihood. The log-likelihood can be very
+        small,  meaning a large negative value such as -28000. Taking the
+        exp() of that results in 0.0, which can break typical algorithms
+        which multiply by this value, so by default we always return a
+        number >= sys.float_info.min.
+        :return: float - likelihood of last measurement of this filter
+        """
+        if self._likelihood is None:
+            self._likelihood = exp(self.log_likelihood)
+            if self._likelihood == 0:
+                self._likelihood = sys.float_info.min
+        return self._likelihood
 
     # EOC
 
