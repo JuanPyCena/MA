@@ -185,6 +185,8 @@ class InteractingMultipleModel(object):
         for filter in self.filters:
             filter.transition_function    = ParserLib.calculate_time_depended_matrix(filter.transition_function,
                                                                                      time_delta, "dt")
+            filter.jacobi_matrix          = ParserLib.calculate_time_depended_matrix(filter.jacobi_matrix,
+                                                                                     time_delta, "dt")
             filter.measurement_function   = ParserLib.calculate_time_depended_matrix(filter.measurement_function,
                                                                                      time_delta, "dt")
             filter.input_function         = ParserLib.calculate_time_depended_matrix(filter.input_function,
