@@ -93,17 +93,17 @@ class TestbenchIMM(object):
             # Predict and update the state
             self.imm.predict_update(measurement, update_kwds=self.__ekf_kwds)
 
-            state              = self.imm.state
-            mode_probabilities = self.imm.mode_probabilities
+            state              = self.imm.state.copy()
+            mode_probabilities = self.imm.mode_probabilities.copy()
             test_data_state    = np.array([float(self.test_data_position[idx][0]), float(self.test_data_velocity[idx][0]),
                                            float(self.test_data_position[idx][1]), float(self.test_data_velocity[idx][1]),
                                            float(self.test_data_acceleration[idx][0]), float(self.test_data_acceleration[idx][1])])
             state_error        = np.abs(np.subtract(test_data_state, state))
 
-            self.imm_data_writer.measurement_data   = measurement
-            self.imm_data_writer.state_data         = state
-            self.imm_data_writer.mode_probabilities = mode_probabilities
-            self.imm_data_writer.state_errors       = state_error
+            self.imm_data_writer.measurement_data   = measurement.copy()
+            self.imm_data_writer.state_data         = state.copy()
+            self.imm_data_writer.mode_probabilities = mode_probabilities.copy()
+            self.imm_data_writer.state_errors       = state_error.copy()
 
 
         print("Finished running Testbench IMM, saving data...")
