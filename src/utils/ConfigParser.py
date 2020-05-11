@@ -25,6 +25,7 @@ KNOWNFILTERKEYS = [KALMANFILTERKEY, EXTENDEDKALMANFILTERKEY]
 
 # KF/EKF filter
 TRANSITIONMATRIX = "transition_matrix"
+JACOBIMATRIX = "jacobi_matrix"
 INPUTCONTROLMATRIX = "input_control_matrix"
 PROCESSNOISEMATRIX = "process_noise_matrix"
 COVARIANCEMATRIX = "covariance_matrix"
@@ -468,6 +469,7 @@ class ExtendedKalmanFilterConfigParser(object):
         """
         # public variables
         self.transition_matrix = np.array([])  # F, quadratic matrix which defines the transitions of the state
+        self.jacobi_matrix = np.array([])  # J, jacobi matrix
         self.measurement_control_matrix = np.array([])  # H, matrix which holds controls the measurement
         self.input_control_matrix = np.array([])  # B/G, matrix which controls the input
         self.process_noise_matrix = np.array([])  # Q, matrix to control the process noise
@@ -487,6 +489,7 @@ class ExtendedKalmanFilterConfigParser(object):
         # local variables
         EKF_cfg_params = {
             "transition_matrix": TRANSITIONMATRIX,
+            "jacobi_matrix": JACOBIMATRIX,
             "input_control_matrix": INPUTCONTROLMATRIX,
             "process_noise_matrix": PROCESSNOISEMATRIX,
             "covariance_matrix": COVARIANCEMATRIX,
@@ -494,7 +497,7 @@ class ExtendedKalmanFilterConfigParser(object):
             "measurement_uncertainty_matrix": MEASUREMENTUNCERTAINTYMATRIX
         }
         self.__known_variables.update(ParserLib.read_known_variables(self.__config[self.__filter_key],
-                                      required_params=[TRANSITIONMATRIX, INPUTCONTROLMATRIX, PROCESSNOISEMATRIX,
+                                      required_params=[TRANSITIONMATRIX, JACOBIMATRIX, INPUTCONTROLMATRIX, PROCESSNOISEMATRIX,
                                                        COVARIANCEMATRIX, MEASUREMENTCONTROLMATRIX,
                                                        MEASUREMENTUNCERTAINTYMATRIX]))
         self.__read_EKF_filter_config(EKF_cfg_params)
@@ -509,6 +512,7 @@ class ExtendedKalmanFilterConfigParser(object):
         # check if variables are present in config be accessing them
         try:
             _ = self.__config[self.__filter_key][cfg_params["transition_matrix"]]
+            _ = self.__config[self.__filter_key][cfg_params["jacobi_matrix"]]
             _ = self.__config[self.__filter_key][cfg_params["measurement_control_matrix"]]
         except:
             raise SyntaxError(
@@ -517,6 +521,9 @@ class ExtendedKalmanFilterConfigParser(object):
 
         # Read values which must be present
         self.transition_matrix = ParserLib.read_matrix(self.__config[self.__filter_key][cfg_params["transition_matrix"]],
+                                                       code_variables=self.__code_variables,
+                                                       known_variables=self.__known_variables)
+        self.jacobi_matrix = ParserLib.read_matrix(self.__config[self.__filter_key][cfg_params["jacobi_matrix"]],
                                                        code_variables=self.__code_variables,
                                                        known_variables=self.__known_variables)
         self.measurement_control_matrix = ParserLib.read_matrix(self.__config[self.__filter_key][cfg_params["measurement_control_matrix"]],
@@ -556,6 +563,7 @@ class ExtendedKalmanFilterConfigParser(object):
 
     def __loading_successfull(self):
         if self.transition_matrix == EmptyArray: return False
+        if self.jacobi_matrix == EmptyArray: return False
         if self.measurement_control_matrix == EmptyArray: return False
         if self.input_control_matrix == EmptyArray: return False
         if self.process_noise_matrix == EmptyArray: return False

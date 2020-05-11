@@ -36,6 +36,7 @@ class KalmanFilter(object):
         self.covariance             = initial_covariance_covariance_matrix  # P
         self.measurement_function   = inital_measurement_function           # H
         self.state_uncertainty      = inital_state_uncertainty              # R
+        self.jacobi_matrix          = state_transition_matrix               # J, Jacobi matrix, not used for KF
 
         # Variables to save the system uncertainty projected into the measurment space. To be used in likelyhood calculations
         self.system_uncertainty         = None  # S
@@ -175,10 +176,10 @@ class KalmanFilter(object):
 
 class ExtendedKalmanFilter(object):
 
-    @typecheck(np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray)
+    @typecheck(np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray)
     def __init__(self, initial_state, inital_input, initial_measurement,
                  state_transition_matrix, control_input_matrix, process_noise_matrix,
-                 initial_covariance_covariance_matrix, inital_measurement_function, inital_state_uncertainty):
+                 initial_covariance_covariance_matrix, inital_measurement_function, inital_state_uncertainty, jacobi_matrix):
         """
         Initializes a KalmanFilter object. For further description, see: https://github.com/rlabbe/filterpy/blob/master/filterpy/kalman/EKF.py
         :param initial_state: np.ndarray - intial state of the filter, x
@@ -200,10 +201,13 @@ class ExtendedKalmanFilter(object):
         self.covariance             = initial_covariance_covariance_matrix  # P
         self.measurement_function   = inital_measurement_function           # H
         self.state_uncertainty      = inital_state_uncertainty              # R
+        self.jacobi_matrix          = jacobi_matrix                         # J
 
         # Variables to save the system uncertainty projected into the measurment space. To be used in likelyhood calculations
         self.system_uncertainty         = None  # S
         self.inverse_system_uncertainty = None  # inv(S)
+
+        self.previous_state = initial_state
 
         # Set values prior to prediction
         # these will always be a copy of state,covariance after predict() is called
@@ -226,8 +230,8 @@ class ExtendedKalmanFilter(object):
 
     ##############################################################################
 
-    @typecheck(np.ndarray, types.FunctionType, types.FunctionType, (tuple, ), (tuple, ), (np.ndarray, ))
-    def predict_update(self, z, HJacobian, Hx, args=(), hx_args=(), u=None):
+    @typecheck(np.ndarray, types.FunctionType, (tuple, ), (tuple, ), (np.ndarray, ))
+    def predict_update(self, z, Hx, args=(), hx_args=(), u=None):
         """ Performs the predict/update innovation of the extended Kalman
         filter.
         Parameters
@@ -235,10 +239,6 @@ class ExtendedKalmanFilter(object):
         z : np.array
             measurement for this step.
             If `None`, only predict step is perfomed.
-        HJacobian : function
-           function which computes the Jacobian of the H matrix (measurement
-           function). Takes state variable (self.x) as input, along with the
-           optional arguments in args, and returns H.
         Hx : function
             function which takes as input the state variable (self.x) along
             with the optional arguments in hx_args, and returns the measurement
@@ -267,7 +267,7 @@ class ExtendedKalmanFilter(object):
         self.predict(self.input)
 
         # update step
-        self.update(z, HJacobian, Hx, args, hx_args, self.input)
+        self.update(z, Hx, args, hx_args, self.input)
 
     ##############################################################################
 
@@ -298,8 +298,8 @@ class ExtendedKalmanFilter(object):
 
     ##############################################################################
 
-    @typecheck(np.ndarray, types.FunctionType, types.FunctionType, (tuple, ), (tuple, ), (np.ndarray, ))
-    def update(self, z, HJacobian, Hx, args=(), hx_args=(), u=None):
+    @typecheck(np.ndarray, types.FunctionType, (tuple, ), (tuple, ), (np.ndarray, ))
+    def update(self, z, Hx, args=(), hx_args=(), u=None):
         """ Performs the predict/update innovation of the extended Kalman
         filter.
         Parameters
@@ -307,10 +307,6 @@ class ExtendedKalmanFilter(object):
         z : np.array
             measurement for this step.
             If `None`, only predict step is perfomed.
-        HJacobian : function
-           function which computes the Jacobian of the H matrix (measurement
-           function). Takes state variable (self.x) as input, along with the
-           optional arguments in args, and returns H.
         Hx : function
             function which takes as input the state variable (self.x) along
             with the optional arguments in hx_args, and returns the measurement
@@ -326,16 +322,13 @@ class ExtendedKalmanFilter(object):
         """
         # pylint: disable=too-many-locals
 
-        if not isinstance(args, tuple):
-            args = (args,)
-
         if not isinstance(hx_args, tuple):
             hx_args = (hx_args,)
 
         if u is not None:
             self.input = u
 
-        H = HJacobian(self.state, *args)
+        H = self.jacobi_matrix
 
         # update step
         PH_transpose = np.dot(self.covariance, H.T)
@@ -359,6 +352,7 @@ class ExtendedKalmanFilter(object):
         self.measurement     = np.copy(z)
         self.state_post      = np.copy(self.state)
         self.covariance_post = np.copy(self.covariance)
+        self.previous_state  = np.copy(self.state)
 
         # set to None to force recompute
         self._log_likelihood = None
