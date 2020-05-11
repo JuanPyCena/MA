@@ -9,32 +9,20 @@ import re
 import numpy as np
 from math import sqrt
 
+from src.utils.logmod import Logger
+
 # Global variables
 CFGPATH="D:\\programming\\pycharm\\Masterarbeit\\MA\\config\\imm_3models.cfg"
 KALMANFILTERKEY = "^(KF+)(\d)*$"  # Regex so multiple KF can be used with numbering
 EXTENDEDKALMANFILTERKEY = "^(EKF+)(\d)*$"  # Regex so multiple EKF can be used with numbering
 
-# Global functions
-def H_of(x):
-    """ compute Jacobian of H matrix for state x """
-
-    denom = sqrt(x[0] ** 2 + x[1] ** 2 + x[2] ** 2 + x[3] ** 2 + x[4] ** 2 + x[5] ** 2)
-    return np.array(
-        [[x[0] / denom, 0, 0, 0, 0, 0],
-         [0, x[1] / denom, 0, 0, 0, 0],
-         [0, 0, x[2] / denom, 0, 0, 0],
-         [0, 0, 0, x[3] / denom, 0, 0],
-         [0, 0, 0, 0, x[4] / denom, 0],
-         [0, 0, 0, 0, 0, x[5] / denom]])
-
-
-##############################################################################
+log = Logger()
 
 def hx(x):
     """ takes a state variable and returns the measurement that would
     correspond to that state.
     """
-    return sqrt(x[0] ** 2 + x[1] ** 2 + x[2] ** 2 + x[3] ** 2 + x[4] ** 2 + x[5] ** 2)
+    return x
 
 ##############################################################################
 
@@ -159,6 +147,7 @@ class TestbenchIMM(object):
         :param filter_name: str - name of the extended kalman filter to be initialized
         """
         transition_matrix          = self.config.filter_configs[filter_name].transition_matrix           # F
+        jacobi_matrix              = self.config.filter_configs[filter_name].jacobi_matrix               # J
         measurement_control_matrix = self.config.filter_configs[filter_name].measurement_control_matrix  # H
         input_control_matrix       = self.config.filter_configs[filter_name].input_control_matrix        # B/G
         process_noise_matrix       = self.config.filter_configs[filter_name].process_noise_matrix        # Q
@@ -167,10 +156,10 @@ class TestbenchIMM(object):
 
         ekf = EKF(self.initial_state, self.initial_input, self.initial_measurement, transition_matrix,
                   input_control_matrix, process_noise_matrix, covariance_matrix,
-                  measurement_control_matrix, measurement_uncertainty)
+                  measurement_control_matrix, measurement_uncertainty, jacobi_matrix)
 
         # Append required functions for the EKF
-        self.__ekf_kwds.append({"HJacobian": H_of, "Hx": hx})
+        self.__ekf_kwds.append({"Hx": hx})
 
         self.sub_filters_dict[filter_name] = ekf
         self.sub_filters.append(ekf)
