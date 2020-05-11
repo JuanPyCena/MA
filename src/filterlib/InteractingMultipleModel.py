@@ -80,7 +80,7 @@ class InteractingMultipleModel(object):
             # the difference in state between the IMM and each filter is used to calculate the covariance matrix
             state_diff = filter.state - self.state
             # P_imm = sum(mu[i] *(state_diff * state_diff' + P_filter))
-            self.covariance += probability * (np.outer(state_diff) + filter.covariance)
+            self.covariance += probability * (np.outer(state_diff, state_diff) + filter.covariance)
 
     ##############################################################################
 
