@@ -37,8 +37,9 @@ class InteractingMultipleModel(object):
         self.mixed_state      = []  # a list of numpy.array which holds the mixed state of all filters within the IMM
         self.mixed_covariance = []  # a list numpy.array which holds the mixed covariance matrix of all filters within the IMM
 
-        self.state      = np.zeros(self.filters[0].state.shape)  # the state of the IMM filter, x
-        self.covariance = np.zeros(self.filters[0].covariance.shape)  # the covariance of the IMM filter, P
+        self.state       = np.zeros(self.filters[0].state.shape)  # the state of the IMM filter, x
+        self.covariance  = np.zeros(self.filters[0].covariance.shape)  # the covariance of the IMM filter, P
+        self.measurement = np.zeros(self.filters[0].state.shape)  # z
 
         self.state_prior      = np.zeros(self.filters[0].state.shape)  # the state of the IMM filter after the prediction, x
         self.covariance_prior = np.zeros(self.filters[0].covariance.shape)  # the covariance of the IMM filter after the prediction, P
@@ -141,6 +142,8 @@ class InteractingMultipleModel(object):
         if input is None:
             input = np.array([])
 
+        self.measurement = measurement
+
         self._calc_mixed_state()
 
         for idx, filter in enumerate(self.filters):
@@ -177,16 +180,30 @@ class InteractingMultipleModel(object):
     ##############################################################################
 
     @typecheck(float)
-    def calculate_time_depended_matrices_of_filters(self, time_delta):
+    def calculate_time_depended_matrices_of_filters(self, time_delta, measurement):
         """
         This function replaces the place holder "dt" within all matrices of all filters with a given float values
         :param time_delta: float - time since last calculation step
         """
         for filter in self.filters:
-            filter.transition_function    = ParserLib.calculate_time_depended_matrix(filter.transition_function,
-                                                                                     time_delta, "dt")
-            filter.jacobi_matrix          = ParserLib.calculate_time_depended_matrix(filter.jacobi_matrix,
-                                                                                     time_delta, "dt")
+            try:
+                filter.transition_function    = ParserLib.calculate_time_depended_matrix(filter.transition_function,
+                                                                                         time_delta, "dt")
+                filter.jacobi_matrix          = ParserLib.calculate_time_depended_matrix(filter.jacobi_matrix,
+                                                                                         time_delta, "dt")
+            except:
+                variables            = ["vx", "vy", "ax", "ay", "x_m", "y_m", "x", "y"]
+                variable_replacement = [self.state[1], self.state[3], self.state[4], self.state[5], measurement[0], measurement[1], self.state[0], self.state[2]]
+                functions             = ["cos", "sin", "arctan"]
+                function_replacement = ["np.cos", "np.sin", "np.arctan"]
+                filter.transition_function = ParserLib.evaluate_functional_matrix(filter.transition_function,
+                                                                                  time_delta, "dt", variables,
+                                                                                  variable_replacement, functions,
+                                                                                  function_replacement)
+                filter.jacobi_matrix = ParserLib.evaluate_functional_matrix(filter.jacobi_matrix,
+                                                                            time_delta, "dt", variables,
+                                                                            variable_replacement, functions,
+                                                                            function_replacement)
             filter.measurement_function   = ParserLib.calculate_time_depended_matrix(filter.measurement_function,
                                                                                      time_delta, "dt")
             filter.input_function         = ParserLib.calculate_time_depended_matrix(filter.input_function,
