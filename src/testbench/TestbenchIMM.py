@@ -75,7 +75,7 @@ class TestbenchIMM(object):
                                     float(self.test_data_acceleration[idx][0]), float(self.test_data_acceleration[idx][1])])
 
             # Replace all placeholders of sub filters
-            self.imm.calculate_time_depended_matrices_of_filters(float(t) - last_update_time_stamp)
+            self.imm.calculate_time_depended_matrices_of_filters(float(t) - last_update_time_stamp, measurement)
             # Save update time stamp
             last_update_time_stamp = float(t)
             # Predict and update the state
