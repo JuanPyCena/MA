@@ -5,9 +5,11 @@ from math import log, exp
 from scipy.stats import multivariate_normal
 
 from src.utils.Decorators import *
+from src.utils.logmod import Logger
 
 # Global Variables
 EmptyArray = np.array([])
+logger = Logger()
 
 class KalmanFilter(object):
 
@@ -97,6 +99,7 @@ class KalmanFilter(object):
         # y = z - Hx
         # error (residual) between measurement and prediction
         y = z - np.dot(self.measurement_function, self.state)
+        self.error = y
 
         # common subexpression for speed
         PH_transpose = np.dot(self.covariance, self.measurement_function.T)
@@ -145,11 +148,10 @@ class KalmanFilter(object):
         """
 
         if self._log_likelihood is None:
-            # Make sure that the state vector is flatten, should be anyway but it does not hurt to make sure
-            flat_x = np.asarray(self.state).flatten()
+            flat_y = np.asarray(self.error).flatten()
             # Set mean to None, this is treated as having the zero vector being the mean.
             flat_mean = None
-            self._log_likelihood = multivariate_normal.logpdf(flat_x, flat_mean, cov=self.system_uncertainty, allow_singular=True)
+            self._log_likelihood = multivariate_normal.logpdf(flat_y, flat_mean, cov=self.system_uncertainty, allow_singular=True)
         return self._log_likelihood
 
     ##############################################################################
@@ -341,6 +343,7 @@ class ExtendedKalmanFilter(object):
         self.inverse_system_uncertainty = S_inv
 
         y          = z - Hx(self.state, *hx_args)
+        self.error = y
         self.state = self.state + np.dot(K, y)
 
         I = np.eye(np.size(self.state))
@@ -368,11 +371,10 @@ class ExtendedKalmanFilter(object):
         """
 
         if self._log_likelihood is None:
-            # Make sure that the state vector is flatten, should be anyway but it does not hurt to make sure
-            flat_x = np.asarray(self.state).flatten()
+            flat_y = np.asarray(self.error).flatten()
             # Set mean to None, this is treated as having the zero vector being the mean.
             flat_mean = None
-            self._log_likelihood = multivariate_normal.logpdf(flat_x, flat_mean, cov=self.system_uncertainty,
+            self._log_likelihood = multivariate_normal.logpdf(flat_y, flat_mean, cov=self.system_uncertainty,
                                                               allow_singular=True)
         return self._log_likelihood
 
