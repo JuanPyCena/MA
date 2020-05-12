@@ -474,7 +474,8 @@ class KalmanFilterConfigParser(object):
         # Optional parameters
         self.input_control_matrix           = self.__read_optional_matrix_parameters(INPUTCONTROLMATRIX,
                                                                                      cfg_params["input_control_matrix"],
-                                                                                     np.size(self.transition_matrix, 1))
+                                                                                     self.transition_matrix.shape,
+                                                                                     optional=np.zeros)
         self.process_noise_matrix           = self.__read_optional_matrix_parameters(PROCESSNOISEMATRIX,
                                                                                      cfg_params["process_noise_matrix"],
                                                                                      self.transition_matrix.shape,
