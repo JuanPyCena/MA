@@ -184,6 +184,63 @@ class ParserLib(object):
     ##############################################################################
 
     @staticmethod
+    def evaluate_functional_matrix(matrix, time, time_variable, other_variables, other_variables_replacements, functions, function_replacements):
+        """
+        This function replaces the time depended variable within a given matrix and replaces it with the actual value.
+        The timedependend variable may be part of an pytonic mathematical expression (e.g.: dt**4/4), this expression
+        is evaulated and the result is entered within the matrix
+        :param matrix: np.ndarray - holds data containing timedependend variables which should be replaced with numerical value
+        :param time: float - time which should be inserted into the matrix
+        :param time_variable: str - key for the time dependend variable, gets replaced by the actual time value
+        :return: matrix_replaced: np.ndarray - holds the matrix containing only float values
+        TODO
+        """
+
+        def contains_word(s, w):
+            return (' ' + w + ' ') in (s)
+
+        def contains_fun(s, w):
+            return (w + ' (') in (s)
+
+        def add_whitespace(s):
+            ret = [" "]
+            for idx, letter in enumerate(s):
+                if letter in ["+", "-", "*", "/", "(", ")"]:
+                    ret.append(" " + letter + " ")
+                else:
+                    ret.append(letter)
+            return "".join(ret)
+
+        matrix_replaced = np.zeros(matrix.shape)
+        for row_col, elem in np.ndenumerate(matrix):
+            try:
+                elem = float(elem)
+            except:
+                elem = elem.replace(time_variable, str(time))
+                elem = add_whitespace(elem)
+                for idx, fun in enumerate(functions):
+                    if contains_fun(elem, fun):
+                        elem = elem.replace(fun, str(function_replacements[idx]))
+
+                for idx, variable in enumerate(other_variables):
+                    if contains_word(elem, variable):
+                        elem = elem.replace(variable, str(other_variables_replacements[idx]))
+                elem = elem.replace(" ", "")
+                elem = elem.replace("0/0", "0")
+                if "//" in elem:
+                    nom, denom = elem.split("//")
+                    nom_val = eval(nom)
+                    denom_val = eval(denom)
+                    elem = str(nom_val) + "/" + str(denom_val)
+
+                elem = elem.replace("0/0", "0")
+                elem = eval(elem)
+            matrix_replaced[row_col] = elem
+        return matrix_replaced.astype(float)
+
+    ##############################################################################
+
+    @staticmethod
     def _check_for_errors(line, **kwargs):
         # check if all brackets are opened and closed correctly
         if "brackets" in kwargs.keys():
