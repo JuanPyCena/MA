@@ -34,9 +34,9 @@ class TestbenchPlotter(object):
             pos, vel, acc = [], [], []
             pos.append(data_point[0])
             vel.append(data_point[1])
-            pos.append(data_point[2])
-            vel.append(data_point[3])
-            acc.append(data_point[4])
+            acc.append(data_point[2])
+            pos.append(data_point[3])
+            vel.append(data_point[4])
             acc.append(data_point[5])
             position_measurement.append(pos)
             velocity_measurement.append(vel)
@@ -54,9 +54,9 @@ class TestbenchPlotter(object):
             pos, vel, acc = [], [], []
             pos.append(data_point[0])
             vel.append(data_point[1])
-            pos.append(data_point[2])
-            vel.append(data_point[3])
-            acc.append(data_point[4])
+            acc.append(data_point[2])
+            pos.append(data_point[3])
+            vel.append(data_point[4])
             acc.append(data_point[5])
             position_state.append(pos)
             velocity_state.append(vel)
@@ -74,9 +74,9 @@ class TestbenchPlotter(object):
             pos, vel, acc = [], [], []
             pos.append(data_point[0])
             vel.append(data_point[1])
-            pos.append(data_point[2])
-            vel.append(data_point[3])
-            acc.append(data_point[4])
+            acc.append(data_point[2])
+            pos.append(data_point[3])
+            vel.append(data_point[4])
             acc.append(data_point[5])
             position_errors.append(pos)
             velocity_errors.append(vel)
@@ -146,7 +146,10 @@ class TestbenchPlotter(object):
         y_acc_error       = [acc[1] for acc in self.imm_data["acceleration_error"]]
         mode_prob_1       = [prob[0] for prob in self.imm_data["mode_probabilities"]]
         mode_prob_2       = [prob[1] for prob in self.imm_data["mode_probabilities"]]
-        mode_prob_3       = [prob[2] for prob in self.imm_data["mode_probabilities"]]
+        try:
+            mode_prob_3       = [prob[2] for prob in self.imm_data["mode_probabilities"]]
+        except:
+            pass
 
         fig, axs = plt.subplots(3)
         axs[0].plot(x_pos_measurement, y_pos_measurement)
@@ -189,7 +192,10 @@ class TestbenchPlotter(object):
         fig, axs = plt.subplots(1)
         axs.plot(self.test_data["time"][:-1], mode_prob_1, label="Mode1")
         axs.plot(self.test_data["time"][:-1], mode_prob_2, label="Mode2")
-        axs.plot(self.test_data["time"][:-1], mode_prob_3, label="Mode3")
+        try:
+            axs.plot(self.test_data["time"][:-1], mode_prob_3, label="Mode3")
+        except:
+            pass
         axs.set_xticklabels([])
         axs.set_xticks([])
         axs.set_xlabel("Time")
