@@ -3,6 +3,7 @@ from src.utils.ConfigParser import ConfigurationParser as CP
 from src.utils.ConfigParser import ParserLib
 
 CFGPATH="D:\\programming\\pycharm\\Masterarbeit\\MA\\config\\imm_3models.cfg"
+CFGPATH1="D:\\programming\\pycharm\\Masterarbeit\\MA\\config\\imm_3models_constant_turning.cfg"
 
 class TestConfigurationParser(unittest.TestCase):
     def test_config_read(self):
@@ -26,6 +27,15 @@ class TestConfigurationParser(unittest.TestCase):
 
         print(ParserLib.calculate_time_depended_matrix(config.filter_configs["KF"].process_noise_matrix, 2, "dt"))
         print(ParserLib.calculate_time_depended_matrix(config.filter_configs["EKF1"].process_noise_matrix, 2, "dt"))
+
+    def test_constant_turing(self):
+        config = CP(cfg_path=CFGPATH1)
+        variables = ["vx", "vy", "ax", "ay", "x", "y"]
+        variable_replacement = [1, 1, 0, 0, 0, 0]
+        functions = ["cos", "sin", "arctan"]
+        function_replacement = ["np.cos", "np.sin", "np.arctan"]
+        print(ParserLib.evaluate_functional_matrix(config.filter_configs["EKF1"].transition_matrix, 0.1, "dt", variables, variable_replacement, functions, function_replacement))
+        print(ParserLib.evaluate_functional_matrix(config.filter_configs["EKF1"].jacobi_matrix, 0.1, "dt", variables, variable_replacement, functions, function_replacement))
 
 if __name__ == '__main__':
     unittest.main()
