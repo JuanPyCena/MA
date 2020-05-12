@@ -120,6 +120,7 @@ class InteractingMultipleModel(object):
         self.mode_probabilities = self.c * self.likelihood
         # normalise mode probabilities to not be greater than 1
         self.mode_probabilities /= np.sum(self.mode_probabilities)
+        self.log.write_to_log("INFO: IMM mode_probabilities {}".format(self.mode_probabilities))
         if float("%.3f"%np.sum(self.mode_probabilities)) > 1:
             raise ValueError("The sum of all mode probabilities is greater than 1: mode probabilities {}, sum is {}"
                              .format(self.mode_probabilities, np.sum(self.mode_probabilities)))
