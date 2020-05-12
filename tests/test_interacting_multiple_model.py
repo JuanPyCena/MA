@@ -177,8 +177,8 @@ class TestInteractingMultipleModel(unittest.TestCase):
         maximum_state_difference      = np.amax(state_difference)
         maximum_covariance_difference = np.amax(covariance_difference)
 
-        self.assertTrue(maximum_state_difference < 0.1)
-        self.assertTrue(maximum_covariance_difference < 0.15)
+        self.assertTrue(maximum_state_difference == 0)
+        self.assertTrue(maximum_covariance_difference == 0)
 
 if __name__ == '__main__':
     unittest.main()
