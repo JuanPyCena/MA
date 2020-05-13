@@ -348,6 +348,105 @@ class TestDataFactory(object):
 
     ##############################################################################
 
+    @staticmethod
+    def test_set8():
+        """
+        Creates a test set using linear uniform motion.
+        """
+        test_file = "D:\\programming\\pycharm\\Masterarbeit\\MA\\src\\testbench\\test_data\\test_data_linear_uniform_motion_non_uniform_time.csv"
+        num = 3001
+        time = np.linspace(0, 300, num=num)
+        indices = range(num)
+        remove_indices =  np.random.choice(indices, num // 4)
+
+        time_removed = []
+        for idx, step in enumerate(time):
+            if idx not in remove_indices:
+                time_removed.append(step)
+
+        # lambda functions to be evalutated by time
+        fun_pos_x = lambda t: t
+        fun_pos_y = lambda t: t
+        fun_vel_x = lambda t: 1
+        fun_vel_y = lambda t: 1
+        fun_acc_x = lambda t: 0
+        fun_acc_y = lambda t: 0
+
+        pos_functions = [fun_pos_x, fun_pos_y]
+        vel_functions = [fun_vel_x, fun_vel_y]
+        acc_functions = [fun_acc_x, fun_acc_y]
+
+        # create actual dataset using the given lambda functions.
+        TestDataFactory.create_test_data(time_removed, pos_functions, vel_functions, acc_functions, test_file)
+
+    ##############################################################################
+
+    @staticmethod
+    def test_set9():
+        """
+        Creates a test set using constant linear acceleration motion
+        """
+        test_file = "D:\\programming\\pycharm\\Masterarbeit\\MA\\src\\testbench\\test_data\\test_data_constant_linear_acceleration_motion_non_uniform_time.csv"
+        num = 3001
+        time = np.linspace(0, 300, num=num)
+        indices = range(num)
+        remove_indices = np.random.choice(indices, num // 4)
+
+        time_removed = []
+        for idx, step in enumerate(time):
+            if idx not in remove_indices:
+                time_removed.append(step)
+
+        # lambda functions to be evalutated by time
+        fun_pos_x = lambda t: (t * t) / 2
+        fun_pos_y = lambda t: (t * t) / 2
+        fun_vel_x = lambda t: t
+        fun_vel_y = lambda t: t
+        fun_acc_x = lambda t: 1
+        fun_acc_y = lambda t: 1
+
+        pos_functions = [fun_pos_x, fun_pos_y]
+        vel_functions = [fun_vel_x, fun_vel_y]
+        acc_functions = [fun_acc_x, fun_acc_y]
+
+        # create actual dataset using the given lambda functions.
+        TestDataFactory.create_test_data(time_removed, pos_functions, vel_functions, acc_functions, test_file)
+
+    ##############################################################################
+
+    @staticmethod
+    def test_set10():
+        """
+        Creates a test set using constant turning motion
+        """
+        test_file = "D:\\programming\\pycharm\\Masterarbeit\\MA\\src\\testbench\\test_data\\test_data_constant_turning_motion_non_uniform_time.csv"
+        num = 3001
+        time = np.linspace(0, 300, num=num)
+        indices = range(num)
+        remove_indices = np.random.choice(indices, num // 4)
+
+        time_removed = []
+        for idx, step in enumerate(time):
+            if idx not in remove_indices:
+                time_removed.append(step)
+
+        # lambda functions to be evalutated by time
+        fun_pos_x = lambda t: np.cos(0.1 * t)
+        fun_pos_y = lambda t: np.sin(0.1 * t)
+        fun_vel_x = lambda t: -0.1 * np.sin(0.1 * t)
+        fun_vel_y = lambda t: 0.1 * np.cos(0.1 * t)
+        fun_acc_x = lambda t: -0.1 * 0.1 * np.cos(0.1 * t)
+        fun_acc_y = lambda t: -0.1 * 0.1 * np.sin(0.1 * t)
+
+        pos_functions = [fun_pos_x, fun_pos_y]
+        vel_functions = [fun_vel_x, fun_vel_y]
+        acc_functions = [fun_acc_x, fun_acc_y]
+
+        # create actual dataset using the given lambda functions.
+        TestDataFactory.create_test_data(time_removed, pos_functions, vel_functions, acc_functions, test_file)
+
+    ##############################################################################
+
 def main():
     TestDataFactory.test_set1()
     TestDataFactory.test_set2()
@@ -356,6 +455,9 @@ def main():
     TestDataFactory.test_set5()
     TestDataFactory.test_set6()
     TestDataFactory.test_set7()
+    TestDataFactory.test_set8()
+    TestDataFactory.test_set9()
+    TestDataFactory.test_set10()
 
 if __name__ == "__main__":
     main()
