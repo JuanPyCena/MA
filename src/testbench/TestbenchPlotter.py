@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -11,9 +12,15 @@ class TestbenchPlotter(object):
         # Determine path were figures should be saved to
         _, self.plot_name_test_data = test_data_file.rsplit("\\", 1)
         _, self.plot_name_imm_data = imm_data_file.rsplit("\\", 1)
-        self.plot_name_combined_data = "D:\\programming\\pycharm\\Masterarbeit\\MA\\src\\testbench\\plots\\" + self.plot_name_imm_data[:-4]  + "_combined_plot"
-        self.plot_name_test_data = "D:\\programming\\pycharm\\Masterarbeit\\MA\\src\\testbench\\plots\\" + self.plot_name_test_data[:-4] + "_test_data_plot"
-        self.plot_name_imm_data = "D:\\programming\\pycharm\\Masterarbeit\\MA\\src\\testbench\\plots\\" + self.plot_name_imm_data[:-4]  + "_imm_data_plot"
+        subfolder_name = self.plot_name_imm_data[:-4]
+        _, _, subfolder_name = subfolder_name.split("_", 2)
+        try:
+            os.mkdir("D:\\programming\\pycharm\\Masterarbeit\\MA\\src\\testbench\\plots\\" + subfolder_name)
+        except:
+            pass
+        self.plot_name_combined_data = "D:\\programming\\pycharm\\Masterarbeit\\MA\\src\\testbench\\plots\\" + subfolder_name + "\\" + self.plot_name_imm_data[:-4]  + "_combined_plot"
+        self.plot_name_test_data = "D:\\programming\\pycharm\\Masterarbeit\\MA\\src\\testbench\\plots\\" + subfolder_name + "\\" + self.plot_name_test_data[:-4] + "_test_data_plot"
+        self.plot_name_imm_data = "D:\\programming\\pycharm\\Masterarbeit\\MA\\src\\testbench\\plots\\" + subfolder_name + "\\" + self.plot_name_imm_data[:-4]  + "_imm_data_plot"
 
         # Read test data
         self.test_data = DFI.read_test_data(test_data_file)
