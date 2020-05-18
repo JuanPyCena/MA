@@ -102,11 +102,12 @@ class KalmanFilter(object):
         self.error = y
 
         # common subexpression for speed
-        PH_transpose = np.dot(self.covariance, self.measurement_function.T)
+        PH_transpose = np.dot(self.covariance, self.measurement_function.T).astype(float)
 
         # S = HPH' + R
         # project system uncertainty into measurement space
         S = np.dot(self.measurement_function, PH_transpose) + self.state_uncertainty
+        S = S.astype(float)
         S_inv = np.linalg.inv(S)
 
         # Save system uncertainty into member variables

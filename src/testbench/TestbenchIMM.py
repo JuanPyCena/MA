@@ -15,6 +15,7 @@ from src.utils.logmod import Logger
 CFGPATH="D:\\programming\\pycharm\\Masterarbeit\\MA\\config\\imm_2models.cfg"
 KALMANFILTERKEY = "^(KF+)(\d)*$"  # Regex so multiple KF can be used with numbering
 EXTENDEDKALMANFILTERKEY = "^(EKF+)(\d)*$"  # Regex so multiple EKF can be used with numbering
+SIGMA_A_SQ = 0
 
 log = Logger()
 
@@ -44,7 +45,7 @@ class TestbenchIMM(object):
         self.config = CP(cfg_path=CFGPATH)
 
         # define common initial values
-        self.initial_input       = np.array([0, 0, 0, 0, 0, 0])
+        self.initial_input       = np.array([float(self.test_data_acceleration[0][0]), float(self.test_data_acceleration[0][1])])
         self.initial_state       = np.array([float(self.test_data_position[0][0]), float(self.test_data_velocity[0][0]), float(self.test_data_acceleration[0][0]),
                                              float(self.test_data_position[0][1]), float(self.test_data_velocity[0][1]), float(self.test_data_acceleration[0][1])])
         self.initial_measurement = self.initial_state
@@ -77,7 +78,7 @@ class TestbenchIMM(object):
             # Save update time stamp
             last_update_time_stamp = float(t)
             # Predict and update the state
-            self.imm.predict_update(measurement, update_kwds=self.__ekf_kwds)
+            self.imm.predict_update(measurement, input=np.array([self.test_data_acceleration[idx][0], self.test_data_acceleration[idx][0]]), update_kwds=self.__ekf_kwds)
 
             state              = self.imm.state.copy()
             mode_probabilities = self.imm.mode_probabilities.copy()
@@ -111,7 +112,8 @@ class TestbenchIMM(object):
             if re.compile(EXTENDEDKALMANFILTERKEY).match(filter):
                 self.__set_up_extended_kalman_filter(filter)
 
-        return IMM(self.sub_filters, self.config.mode_probabilities, self.config.markov_transition_matrix)
+        return IMM(self.sub_filters, self.config.mode_probabilities, self.config.markov_transition_matrix,
+                   self.config.expansion_matrix, self.config.shrinking_matrix)
 
     ##############################################################################
 
@@ -124,10 +126,19 @@ class TestbenchIMM(object):
         measurement_control_matrix = self.config.filter_configs[filter_name].measurement_control_matrix      # H
         input_control_matrix       = self.config.filter_configs[filter_name].input_control_matrix            # B/G
         process_noise_matrix       = self.config.filter_configs[filter_name].process_noise_matrix            # Q
-        covariance_matrix          = np.eye(6)                                                               # P
+        covariance_matrix          = np.eye(np.size(self.config.filter_configs[filter_name].transition_matrix, 0))  # P
         measurement_uncertainty    = self.config.filter_configs[filter_name].measurement_uncertainty_matrix  # R
 
-        kf = KF(self.initial_state, self.initial_input, self.initial_measurement, transition_matrix,
+        if np.size(self.config.filter_configs[filter_name].transition_matrix, 0) == 4:
+            initial_state = np.array([self.initial_state[0], self.initial_state[1], self.initial_state[3], self.initial_state[4]])
+            initial_input = np.array([self.initial_input[0], self.initial_input[1]])
+            initial_measurement = np.array([self.initial_measurement[0], self.initial_measurement[1], self.initial_measurement[3], self.initial_measurement[4]])
+        else:
+            initial_state = self.initial_state
+            initial_input = self.initial_input
+            initial_measurement = self.initial_measurement
+
+        kf = KF(initial_state, initial_input, initial_measurement, transition_matrix,
                 input_control_matrix, process_noise_matrix, covariance_matrix,
                 measurement_control_matrix, measurement_uncertainty)
 
@@ -149,10 +160,19 @@ class TestbenchIMM(object):
         measurement_control_matrix = self.config.filter_configs[filter_name].measurement_control_matrix      # H
         input_control_matrix       = self.config.filter_configs[filter_name].input_control_matrix            # B/G
         process_noise_matrix       = self.config.filter_configs[filter_name].process_noise_matrix            # Q
-        covariance_matrix          = np.eye(6)                                                               # P
+        covariance_matrix          = np.eye(np.size(self.config.filter_configs[filter_name].transition_matrix, 0))   # P
         measurement_uncertainty    = self.config.filter_configs[filter_name].measurement_uncertainty_matrix  # R
 
-        ekf = EKF(self.initial_state, self.initial_input, self.initial_measurement, transition_matrix,
+        if np.size(self.config.filter_configs[filter_name].transition_matrix, 0) == 4:
+            initial_state = np.array([self.initial_state[0], self.initial_state[1], self.initial_state[3], self.initial_state[4]])
+            initial_input = np.array([self.initial_input[0], self.initial_input[1], self.initial_input[3], self.initial_input[4]])
+            initial_measurement = np.array([self.initial_measurement[0], self.initial_measurement[1], self.initial_measurement[3], self.initial_measurement[4]])
+        else:
+            initial_state = self.initial_state
+            initial_input = self.initial_input
+            initial_measurement = self.initial_measurement
+
+        ekf = EKF(initial_state, initial_input, initial_measurement, transition_matrix,
                   input_control_matrix, process_noise_matrix, covariance_matrix,
                   measurement_control_matrix, measurement_uncertainty, jacobi_matrix)
 

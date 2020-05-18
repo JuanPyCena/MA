@@ -14,7 +14,7 @@ SIGMA_A_SQ = 1
 class InteractingMultipleModel(object):
 
     @typecheck(list, np.ndarray, np.ndarray)
-    def __init__(self, filters, initial_mode_probabilities, markov_transition_matrix):
+    def __init__(self, filters, initial_mode_probabilities, markov_transition_matrix, expansion_matrix, shrinking_matrix):
         """
         Initializes a InteractingMultipleModel object. For description of formulae, see: https://drive.google.com/open?id=1KRITwuqHBTCtndpCvFQknt3VB0lFSruw
         :param filters: list - a list which holds the filter objects used by the IMM
@@ -38,18 +38,25 @@ class InteractingMultipleModel(object):
         self.mixed_state      = []  # a list of numpy.array which holds the mixed state of all filters within the IMM
         self.mixed_covariance = []  # a list numpy.array which holds the mixed covariance matrix of all filters within the IMM
 
-        self.state       = np.zeros(self.filters[0].state.shape)  # the state of the IMM filter, x
-        self.covariance  = np.zeros(self.filters[0].covariance.shape)  # the covariance of the IMM filter, P
-        self.measurement = np.zeros(self.filters[0].state.shape)  # z
+        self.state       = np.zeros(6)  # the state of the IMM filter, x
+        self.covariance  = np.zeros(6)  # the covariance of the IMM filter, P
+        self.measurement = np.zeros(6)  # z
 
-        self.state_prior      = np.zeros(self.filters[0].state.shape)  # the state of the IMM filter after the prediction, x
-        self.covariance_prior = np.zeros(self.filters[0].covariance.shape)  # the covariance of the IMM filter after the prediction, P
-        self.state_post       = np.zeros(self.filters[0].state.shape)  # the state of the IMM filter after the update, x
-        self.covariance_post  = np.zeros(self.filters[0].covariance.shape)  # the covariance of the IMM filter after the update, P
+        self.state_prior      = np.zeros(self.state.shape)  # the state of the IMM filter after the prediction, x
+        self.covariance_prior = np.zeros(self.covariance.shape)  # the covariance of the IMM filter after the prediction, P
+        self.state_post       = np.zeros(self.state.shape)  # the state of the IMM filter after the update, x
+        self.covariance_post  = np.zeros(self.covariance.shape)  # the covariance of the IMM filter after the update, P
 
         # Mode probability matrix, U
         self.mode_probability_matrix = np.divide(np.ones(self.markov_transition_matrix.shape),
                                                  np.size(self.markov_transition_matrix))
+
+        # Matrix used to to expand the filter state to the IMM state
+        expansion_matrix = ParserLib.calculate_time_depended_matrix(expansion_matrix, self.filters[0].input[0], "sigma_a_sq")
+        shrinking_matrix = ParserLib.calculate_time_depended_matrix(shrinking_matrix, self.filters[0].input[0], "sigma_a_sq")
+
+        self.expansion_matrix = expansion_matrix
+        self.shrinking_matrix = shrinking_matrix
 
         # calculated initial values
         self._calc_mode_probability_matrix()
@@ -82,16 +89,19 @@ class InteractingMultipleModel(object):
         # The IMM mixed state is the sum of all filter state weighted by its probability
         self.state.fill(0)
         for filter, probability in zip(self.filters, self.mode_probabilities):
-            self.state += filter.state * probability
+            filter_state_expanded = self._expand_to_imm_state(filter.state)
+            self.state = self.state + filter_state_expanded * probability
 
         # The covariance is the sum of each covariance + the square of the state difference of each
         # filter to the mixed state weighted by its probability
         self.covariance.fill(0)
         for filter, probability in zip(self.filters, self.mode_probabilities):
             # the difference in state between the IMM and each filter is used to calculate the covariance matrix
-            state_diff = filter.state - self.state
+            filter_state_expanded = self._expand_to_imm_state(filter.state)
+            filter_covariance_expanded = self._expand_to_imm_covariance(filter.covariance, len(filter.state))
+            state_diff = filter_state_expanded - self.state
             # P_imm = sum(mu[i] *(state_diff * state_diff' + P_filter))
-            self.covariance += probability * (np.outer(state_diff, state_diff) + filter.covariance)
+            self.covariance = self.covariance + probability * (np.outer(state_diff, state_diff) + filter_covariance_expanded)
 
     ##############################################################################
 
@@ -103,14 +113,17 @@ class InteractingMultipleModel(object):
         for i, (f_i, w_i) in enumerate(zip(self.filters, self.mode_probability_matrix.T)):
             x = np.zeros(self.state.shape)
             for filter, probability_j in zip(self.filters, w_i):
-                x += filter.state * probability_j
-            xs.append(x)
+                filter_state_expanded = self._expand_to_imm_state(filter.state)
+                x = x + filter_state_expanded * probability_j
+            xs.append(x.astype(float))
 
             P = np.zeros(self.covariance.shape)
             for filter, probability_j in zip(self.filters, w_i):
-                state_diff = filter.state - x
-                P += probability_j * (np.outer(state_diff, state_diff) + filter.covariance)
-            Ps.append(P)
+                filter_state_expanded = self._expand_to_imm_state(filter.state)
+                filter_covariance_expanded = self._expand_to_imm_covariance(filter.covariance, len(filter.state))
+                state_diff = filter_state_expanded - x
+                P = P + probability_j * (np.outer(state_diff, state_diff) + filter_covariance_expanded)
+            Ps.append(P.astype(float))
 
         self.mixed_state      = xs
         self.mixed_covariance = Ps
@@ -144,14 +157,21 @@ class InteractingMultipleModel(object):
         if input is None:
             input = np.array([])
 
+        self.expansion_matrix = ParserLib.evaluate_functional_matrix(self.expansion_matrix, 0,
+                                                                "dt", ["sigma_a_sq"],
+                                                                [input], [], [])
+        self.shrinking_matrix = ParserLib.evaluate_functional_matrix(self.shrinking_matrix, 0,
+                                                                "dt", ["sigma_a_sq"],
+                                                                [input], [], [])
+
         self.measurement = measurement
 
         self._calc_mixed_state()
 
         for idx, filter in enumerate(self.filters):
             # update filter state and covariance to current mixed values
-            filter.state      = self.mixed_state[idx]
-            filter.covariance = self.mixed_covariance[idx]
+            filter.state      = self._shrink_to_filter_state(self.mixed_state[idx], len(filter.state))
+            filter.covariance = self._shrink_to_filter_covariance(self.mixed_covariance[idx], len(filter.state))
             filter.predict(input)
             self.log.write_to_log("INFO: {} state after prediction: {}".format(filter, filter.state))
 
@@ -166,7 +186,8 @@ class InteractingMultipleModel(object):
             kwds = dict()
             if "update_kwds" in update_kwds.keys():
                 kwds = update_kwds["update_kwds"][idx]
-            filter.update(measurement, **kwds)
+            z = self._shrink_to_filter_state(measurement, len(filter.state))
+            filter.update(z, **kwds)
             self.log.write_to_log("INFO: {} state after update: {}".format(filter, filter.state))
             self.likelihood[idx] = filter.likelihood
 
@@ -188,7 +209,7 @@ class InteractingMultipleModel(object):
         :param time_delta: float - time since last calculation step
         """
         variables = ["sigma_a_sq", "vx", "vy", "ax", "ay", "x_m", "y_m", "x", "y"]
-        variable_replacement = [SIGMA_A_SQ, self.state[1], self.state[3], self.state[4], self.state[5], measurement[0],
+        variable_replacement = [self.filters[0].input[0], self.state[1], self.state[3], self.state[4], self.state[5], measurement[0],
                                 measurement[1], self.state[0], self.state[2]]
         functions = ["cos", "sin", "arctan"]
         function_replacement = ["np.cos", "np.sin", "np.arctan"]
@@ -222,5 +243,48 @@ class InteractingMultipleModel(object):
                                                                                  time_delta, "dt", variables,
                                                                                  variable_replacement, functions,
                                                                                  function_replacement)
+
+    ##############################################################################
+
+    def _expand_to_imm_state(self, state):
+        if len(state) == 4:
+            state = np.append(state, [1, 1])
+            new_state = np.dot(self.expansion_matrix, state)
+            return new_state
+        else:
+            return state
+
+    ##############################################################################
+
+    def _expand_to_imm_covariance(self, covariance, filter_state_dim):
+        if filter_state_dim == 4:
+            new_covariance = np.eye(len(self.state))
+            M, N = np.size(covariance, 0), np.size(covariance, 1)
+            for i in range(M):
+                for j in range(N):
+                    new_covariance[i, j] = covariance[i, j]
+            new_covariance = np.dot(np.dot(self.expansion_matrix, new_covariance), self.expansion_matrix.T)
+            return new_covariance
+        else:
+            return covariance
+
+    ##############################################################################
+
+    def _shrink_to_filter_state(self, imm_state, filter_state_dim):
+        if filter_state_dim == 4:
+            new_state = np.dot(self.shrinking_matrix, imm_state)
+            return new_state
+        else:
+            return imm_state
+
+    ##############################################################################
+
+    def _shrink_to_filter_covariance(self, imm_covariance, filter_state_dim):
+        if filter_state_dim == 4:
+            new_covariance = np.dot(np.dot(self.shrinking_matrix, imm_covariance), self.shrinking_matrix.T)
+            return new_covariance
+        else:
+            return imm_covariance
+
     # EOC
 # EOF

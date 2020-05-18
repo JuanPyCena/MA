@@ -17,6 +17,8 @@ FILTERKEY = "filters"
 STATEKEY = "state"
 MARKOVMATRIXKEY = "markov_transition_matrix"
 MODEPROBABILITIESKEY = "mode_probabilities"
+EXPANSIONMATRIXKEY = "expansion_matrix"
+SHRINKINGMATRIXKEY = "shrinking_matrix"
 
 # Filter keys
 KALMANFILTERKEY = "^(KF+)(\d)*$"  # Regex so multiple KF can be used with numbering
@@ -205,7 +207,7 @@ class ParserLib(object):
         def add_whitespace(s):
             ret = [" "]
             for idx, letter in enumerate(s):
-                if letter in ["+", "-", "*", "/", "(", ")"]:
+                if letter in ["+", "-", "*", "/", "(", ")", ","]:
                     ret.append(" " + letter + " ")
                 else:
                     ret.append(letter)
@@ -225,6 +227,10 @@ class ParserLib(object):
                 for idx, variable in enumerate(other_variables):
                     if contains_word(elem, variable):
                         elem = elem.replace(variable, str(other_variables_replacements[idx]))
+
+                for idx, variable in enumerate(other_variables):
+                        elem = elem.replace(variable, str(other_variables_replacements[idx]))
+
                 elem = elem.replace(" ", "")
                 elem = elem.replace("0/0", "0")
                 if "//" in elem:
@@ -293,7 +299,9 @@ class ConfigurationParser(object):
         self.filters                  = []  # list which holds what kind of filters are used for the IMM
         self.markov_transition_matrix = np.array([])  # quadratic matrix which defines the transitions between the modes
         self.mode_probabilities       = np.array([])  # vector which holds the probability of each mode
-        self.filter_configs           = {}  # dcit which holds the configs of the filters used of by the IMM
+        self.filter_configs           = {}  # dict which holds the configs of the filters used of by the IMM
+        self.expansion_matrix         = np.array([])
+        self.shrinking_matrix         = np.array([])
 
         # private variables
         self.__known_variables = {}
@@ -305,7 +313,9 @@ class ConfigurationParser(object):
             "filters" : FILTERKEY,
             "state" : STATEKEY,
             "markov_transition_matrix" : MARKOVMATRIXKEY,
-            "mode_probabilities" : MODEPROBABILITIESKEY
+            "mode_probabilities" : MODEPROBABILITIESKEY,
+            "expansion_matrix" : EXPANSIONMATRIXKEY,
+            "shrinking_matrix" : SHRINKINGMATRIXKEY
         }
 
         # read config
@@ -368,6 +378,12 @@ class ConfigurationParser(object):
                                                               code_variables=self.__code_variables,
                                                               known_variables=self.__known_variables)
         self.mode_probabilities       = ParserLib.read_matrix(self.__config["IMM"][cfg_params["mode_probabilities"]],
+                                                              code_variables=self.__code_variables,
+                                                              known_variables=self.__known_variables)
+        self.expansion_matrix         = ParserLib.read_matrix(self.__config["IMM"][cfg_params["expansion_matrix"]],
+                                                              code_variables=self.__code_variables,
+                                                              known_variables=self.__known_variables)
+        self.shrinking_matrix         = ParserLib.read_matrix(self.__config["IMM"][cfg_params["shrinking_matrix"]],
                                                               code_variables=self.__code_variables,
                                                               known_variables=self.__known_variables)
 
