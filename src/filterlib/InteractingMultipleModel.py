@@ -7,6 +7,7 @@ from src.utils.logmod import Logger
 # Global Variables
 EmptyArray = np.array([])
 EmptyList = []
+SIGMA_A_SQ = 1
 
 # This filter is designed after the formulas described in https://drive.google.com/open?id=1KRITwuqHBTCtndpCvFQknt3VB0lFSruw
 
@@ -186,35 +187,40 @@ class InteractingMultipleModel(object):
         This function replaces the place holder "dt" within all matrices of all filters with a given float values
         :param time_delta: float - time since last calculation step
         """
-        for filter in self.filters:
-            try:
-                filter.transition_function    = ParserLib.calculate_time_depended_matrix(filter.transition_function,
-                                                                                         time_delta, "dt")
-                filter.jacobi_matrix          = ParserLib.calculate_time_depended_matrix(filter.jacobi_matrix,
-                                                                                         time_delta, "dt")
-            except:
-                variables            = ["vx", "vy", "ax", "ay", "x_m", "y_m", "x", "y"]
-                variable_replacement = [self.state[1], self.state[3], self.state[4], self.state[5], measurement[0], measurement[1], self.state[0], self.state[2]]
-                functions             = ["cos", "sin", "arctan"]
-                function_replacement = ["np.cos", "np.sin", "np.arctan"]
-                filter.transition_function = ParserLib.evaluate_functional_matrix(filter.transition_function,
-                                                                                  time_delta, "dt", variables,
-                                                                                  variable_replacement, functions,
-                                                                                  function_replacement)
-                filter.jacobi_matrix = ParserLib.evaluate_functional_matrix(filter.jacobi_matrix,
-                                                                            time_delta, "dt", variables,
-                                                                            variable_replacement, functions,
-                                                                            function_replacement)
-            filter.measurement_function   = ParserLib.calculate_time_depended_matrix(filter.measurement_function,
-                                                                                     time_delta, "dt")
-            filter.input_function         = ParserLib.calculate_time_depended_matrix(filter.input_function,
-                                                                                     time_delta, "dt")
-            filter.process_noise_function = ParserLib.calculate_time_depended_matrix(filter.process_noise_function,
-                                                                                     time_delta, "dt")
-            filter.covariance             = ParserLib.calculate_time_depended_matrix(filter.covariance,
-                                                                                     time_delta, "dt")
-            filter.state_uncertainty      = ParserLib.calculate_time_depended_matrix(filter.state_uncertainty,
-                                                                                     time_delta, "dt")
+        variables = ["sigma_a_sq", "vx", "vy", "ax", "ay", "x_m", "y_m", "x", "y"]
+        variable_replacement = [SIGMA_A_SQ, self.state[1], self.state[3], self.state[4], self.state[5], measurement[0],
+                                measurement[1], self.state[0], self.state[2]]
+        functions = ["cos", "sin", "arctan"]
+        function_replacement = ["np.cos", "np.sin", "np.arctan"]
 
+        for filter in self.filters:
+            filter.transition_function    = ParserLib.evaluate_functional_matrix(filter.transition_function,
+                                                                                 time_delta, "dt", variables,
+                                                                                 variable_replacement, functions,
+                                                                                 function_replacement)
+            filter.jacobi_matrix          = ParserLib.evaluate_functional_matrix(filter.jacobi_matrix,
+                                                                                 time_delta, "dt", variables,
+                                                                                 variable_replacement, functions,
+                                                                                 function_replacement)
+            filter.measurement_function   = ParserLib.evaluate_functional_matrix(filter.measurement_function,
+                                                                                 time_delta, "dt", variables,
+                                                                                 variable_replacement, functions,
+                                                                                 function_replacement)
+            filter.input_function         = ParserLib.evaluate_functional_matrix(filter.input_function,
+                                                                                 time_delta, "dt", variables,
+                                                                                 variable_replacement, functions,
+                                                                                 function_replacement)
+            filter.process_noise_function = ParserLib.evaluate_functional_matrix(filter.process_noise_function,
+                                                                                 time_delta, "dt", variables,
+                                                                                 variable_replacement, functions,
+                                                                                 function_replacement)
+            filter.covariance             = ParserLib.evaluate_functional_matrix(filter.covariance,
+                                                                                 time_delta, "dt", variables,
+                                                                                 variable_replacement, functions,
+                                                                                 function_replacement)
+            filter.state_uncertainty      = ParserLib.evaluate_functional_matrix(filter.state_uncertainty,
+                                                                                 time_delta, "dt", variables,
+                                                                                 variable_replacement, functions,
+                                                                                 function_replacement)
     # EOC
 # EOF
