@@ -14,7 +14,7 @@ SIGMA_A_SQ = 1
 class InteractingMultipleModel(object):
 
     @typecheck(list, np.ndarray, np.ndarray)
-    def __init__(self, filters, initial_mode_probabilities, markov_transition_matrix, expansion_matrix, shrinking_matrix):
+    def __init__(self, filters, initial_mode_probabilities, markov_transition_matrix, expansion_matrix, expansion_matrix_covariance, expansion_matrix_S, shrinking_matrix):
         """
         Initializes a InteractingMultipleModel object. For description of formulae, see: https://drive.google.com/open?id=1KRITwuqHBTCtndpCvFQknt3VB0lFSruw
         :param filters: list - a list which holds the filter objects used by the IMM
@@ -52,10 +52,9 @@ class InteractingMultipleModel(object):
                                                  np.size(self.markov_transition_matrix))
 
         # Matrix used to to expand the filter state to the IMM state
-        expansion_matrix = ParserLib.calculate_time_depended_matrix(expansion_matrix, self.filters[0].input[0], "sigma_a_sq")
-        shrinking_matrix = ParserLib.calculate_time_depended_matrix(shrinking_matrix, self.filters[0].input[0], "sigma_a_sq")
-
         self.expansion_matrix = expansion_matrix
+        self.expansion_matrix_covariance = expansion_matrix_covariance
+        self.expansion_matrix_S = expansion_matrix_S
         self.shrinking_matrix = shrinking_matrix
 
         # calculated initial values
@@ -157,13 +156,6 @@ class InteractingMultipleModel(object):
         if input is None:
             input = np.array([])
 
-        self.expansion_matrix = ParserLib.evaluate_functional_matrix(self.expansion_matrix, 0,
-                                                                "dt", ["sigma_a_sq"],
-                                                                [input], [], [])
-        self.shrinking_matrix = ParserLib.evaluate_functional_matrix(self.shrinking_matrix, 0,
-                                                                "dt", ["sigma_a_sq"],
-                                                                [input], [], [])
-
         self.measurement = measurement
 
         self._calc_mixed_state()
@@ -187,7 +179,7 @@ class InteractingMultipleModel(object):
             if "update_kwds" in update_kwds.keys():
                 kwds = update_kwds["update_kwds"][idx]
             z = self._shrink_to_filter_state(measurement, len(filter.state))
-            filter.update(z, **kwds)
+            filter.update(z, expand_matrix=self._expand_to_imm_s, expand_vector=self._expand_to_imm_state, **kwds)
             self.log.write_to_log("INFO: {} state after update: {}".format(filter, filter.state))
             self.likelihood[idx] = filter.likelihood
 
@@ -209,7 +201,7 @@ class InteractingMultipleModel(object):
         :param time_delta: float - time since last calculation step
         """
         variables = ["sigma_a_sq", "vx", "vy", "ax", "ay", "x_m", "y_m", "x", "y"]
-        variable_replacement = [self.filters[0].input[0], self.state[1], self.state[3], self.state[4], self.state[5], measurement[0],
+        variable_replacement = [SIGMA_A_SQ, self.state[1], self.state[3], self.state[4], self.state[5], measurement[0],
                                 measurement[1], self.state[0], self.state[2]]
         functions = ["cos", "sin", "arctan"]
         function_replacement = ["np.cos", "np.sin", "np.arctan"]
@@ -263,7 +255,21 @@ class InteractingMultipleModel(object):
             for i in range(M):
                 for j in range(N):
                     new_covariance[i, j] = covariance[i, j]
-            new_covariance = np.dot(np.dot(self.expansion_matrix, new_covariance), self.expansion_matrix.T)
+            new_covariance = np.dot(np.dot(self.expansion_matrix_covariance, new_covariance), self.expansion_matrix_covariance.T)
+            return new_covariance
+        else:
+            return covariance
+
+    ##############################################################################
+
+    def _expand_to_imm_s(self, covariance, filter_state_dim):
+        if filter_state_dim == 4:
+            new_covariance = np.eye(len(self.state))
+            M, N = np.size(covariance, 0), np.size(covariance, 1)
+            for i in range(M):
+                for j in range(N):
+                    new_covariance[i, j] = covariance[i, j]
+            new_covariance = np.dot(np.dot(self.expansion_matrix_S, new_covariance), self.expansion_matrix_S.T)
             return new_covariance
         else:
             return covariance

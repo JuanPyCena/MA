@@ -91,7 +91,7 @@ class KalmanFilter(object):
     ##############################################################################
 
     @typecheck(np.ndarray)
-    def update(self, z):
+    def update(self, z, expand_matrix, expand_vector):
         """
         Update the filter state and covariance matrix using the (prior) made predictions
         :param z: np.ndarray - measurement used to determine the quality of the prediction
@@ -99,7 +99,6 @@ class KalmanFilter(object):
         # y = z - Hx
         # error (residual) between measurement and prediction
         y = z - np.dot(self.measurement_function, self.state)
-        self.error = y
 
         # common subexpression for speed
         PH_transpose = np.dot(self.covariance, self.measurement_function.T).astype(float)
@@ -111,8 +110,8 @@ class KalmanFilter(object):
         S_inv = np.linalg.inv(S)
 
         # Save system uncertainty into member variables
-        self.system_uncertainty = S
-        self.inverse_system_uncertainty = S_inv
+        self.system_uncertainty = expand_matrix(S, len(self.state))
+        self.inverse_system_uncertainty = expand_matrix(S_inv, len(self.state))
 
         # K = PH'inv(S)
         # map system uncertainty into kalman gain
@@ -121,6 +120,7 @@ class KalmanFilter(object):
         # x = x + Ky
         # predict new state with residual scaled by the kalman gain
         self.state = self.state + np.dot(K, y)
+        self.error = expand_vector(np.round(z, 5) - np.round(np.dot(self.measurement_function, self.state).astype(float), 5))
 
         # P = (I-KH)P(I-KH)' + KRK'
         # This is more numerically stable
@@ -152,6 +152,7 @@ class KalmanFilter(object):
             flat_y = np.asarray(self.error).flatten()
             # Set mean to None, this is treated as having the zero vector being the mean.
             flat_mean = None
+            det = np.linalg.det(self.system_uncertainty)
             self._log_likelihood = multivariate_normal.logpdf(flat_y, flat_mean, cov=self.system_uncertainty, allow_singular=True)
         return self._log_likelihood
 
@@ -344,8 +345,8 @@ class ExtendedKalmanFilter(object):
         self.inverse_system_uncertainty = S_inv
 
         y          = z - Hx(self.state, *hx_args)
-        self.error = y
         self.state = self.state + np.dot(K, y)
+        self.error = np.round(z, 5) - np.round(Hx(self.state, *hx_args).astype(float), 5)
 
         I = np.eye(np.size(self.state))
 

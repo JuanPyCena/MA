@@ -18,6 +18,8 @@ STATEKEY = "state"
 MARKOVMATRIXKEY = "markov_transition_matrix"
 MODEPROBABILITIESKEY = "mode_probabilities"
 EXPANSIONMATRIXKEY = "expansion_matrix"
+EXPANSIONMATRIXCOVARIANCEKEY = "expansion_matrix_covariance"
+EXPANSIONMATRIXSKEY = "expansion_matrix_s"
 SHRINKINGMATRIXKEY = "shrinking_matrix"
 
 # Filter keys
@@ -301,6 +303,8 @@ class ConfigurationParser(object):
         self.mode_probabilities       = np.array([])  # vector which holds the probability of each mode
         self.filter_configs           = {}  # dict which holds the configs of the filters used of by the IMM
         self.expansion_matrix         = np.array([])
+        self.expansion_matrix_covariance         = np.array([])
+        self.expansion_matrix_S        = np.array([])
         self.shrinking_matrix         = np.array([])
 
         # private variables
@@ -315,6 +319,8 @@ class ConfigurationParser(object):
             "markov_transition_matrix" : MARKOVMATRIXKEY,
             "mode_probabilities" : MODEPROBABILITIESKEY,
             "expansion_matrix" : EXPANSIONMATRIXKEY,
+            "expansion_matrix_covariance" : EXPANSIONMATRIXCOVARIANCEKEY,
+            "expansion_matrix_s" : EXPANSIONMATRIXSKEY,
             "shrinking_matrix" : SHRINKINGMATRIXKEY
         }
 
@@ -381,6 +387,12 @@ class ConfigurationParser(object):
                                                               code_variables=self.__code_variables,
                                                               known_variables=self.__known_variables)
         self.expansion_matrix         = ParserLib.read_matrix(self.__config["IMM"][cfg_params["expansion_matrix"]],
+                                                              code_variables=self.__code_variables,
+                                                              known_variables=self.__known_variables)
+        self.expansion_matrix_covariance         = ParserLib.read_matrix(self.__config["IMM"][cfg_params["expansion_matrix_covariance"]],
+                                                              code_variables=self.__code_variables,
+                                                              known_variables=self.__known_variables)
+        self.expansion_matrix_S         = ParserLib.read_matrix(self.__config["IMM"][cfg_params["expansion_matrix_s"]],
                                                               code_variables=self.__code_variables,
                                                               known_variables=self.__known_variables)
         self.shrinking_matrix         = ParserLib.read_matrix(self.__config["IMM"][cfg_params["shrinking_matrix"]],

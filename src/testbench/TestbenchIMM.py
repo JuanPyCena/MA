@@ -78,7 +78,7 @@ class TestbenchIMM(object):
             # Save update time stamp
             last_update_time_stamp = float(t)
             # Predict and update the state
-            self.imm.predict_update(measurement, input=np.array([self.test_data_acceleration[idx][0], self.test_data_acceleration[idx][0]]), update_kwds=self.__ekf_kwds)
+            self.imm.predict_update(measurement, update_kwds=self.__ekf_kwds)
 
             state              = self.imm.state.copy()
             mode_probabilities = self.imm.mode_probabilities.copy()
@@ -113,7 +113,8 @@ class TestbenchIMM(object):
                 self.__set_up_extended_kalman_filter(filter)
 
         return IMM(self.sub_filters, self.config.mode_probabilities, self.config.markov_transition_matrix,
-                   self.config.expansion_matrix, self.config.shrinking_matrix)
+                   self.config.expansion_matrix, self.config.expansion_matrix_covariance, self.config.expansion_matrix_S,
+                   self.config.shrinking_matrix)
 
     ##############################################################################
 
