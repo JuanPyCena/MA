@@ -444,6 +444,91 @@ class TestDataFactory(object):
 
         # create actual dataset using the given lambda functions.
         TestDataFactory.create_test_data(time_removed, pos_functions, vel_functions, acc_functions, test_file)
+    ##############################################################################
+
+    @staticmethod
+    def test_set11():
+        """
+        Creates a test set using combined motion, uniform linear -> constant turning -> constant accelaration
+        """
+        test_file = "D:\\programming\\pycharm\\Masterarbeit\\MA\\src\\testbench\\test_data\\test_data_acc_then_const.csv"
+        time = np.linspace(0, 60, num=601)
+
+        # functions to be evalutated by time
+        def fun_pos_x(t, old_pos):
+            if t < 1.1:
+                return (t * t) / 2
+            elif t > 51:
+                return old_pos
+            elif t > 50:
+                t -= 50
+                return -(t * t) / 2 + old_pos
+            else:
+                t -= 1.1
+                return t
+
+        def fun_pos_y(t, old_pos):
+            if t < 1.1:
+                return (t * t) / 2
+            elif t > 51:
+                return old_pos
+            elif t > 50:
+                t -= 50
+                return -(t * t) / 2  + old_pos
+            else:
+                t -= 1.1
+                return t
+
+        def fun_vel_x(t):
+            if t < 1.1:
+                return t
+            elif t > 51:
+                return 0
+            elif t > 50:
+                t -= 50
+                return -t
+            else:
+                t -= 1.1
+                return 1
+
+        def fun_vel_y(t):
+            if t < 1.1:
+                return t
+            elif t > 51:
+                return 0
+            elif t > 50:
+                t -= 50
+                return -t
+            else:
+                t -= 1.1
+                return 1
+
+        def fun_acc_x(t):
+            if t < 1.1:
+                return 1
+            elif t > 51:
+                return 0
+            elif t > 50:
+                return -1
+            else:
+                return 0
+
+        def fun_acc_y(t):
+            if t < 1.1:
+                return 1
+            elif t > 51:
+                return 0
+            elif t > 50:
+                return -1
+            else:
+                return 0
+
+        pos_functions = [fun_pos_x, fun_pos_y]
+        vel_functions = [fun_vel_x, fun_vel_y]
+        acc_functions = [fun_acc_x, fun_acc_y]
+
+        # create actual dataset using the given lambda functions.
+        TestDataFactory.create_combined_test_data(time, pos_functions, vel_functions, acc_functions, test_file)
 
     ##############################################################################
 
@@ -458,6 +543,7 @@ def main():
     TestDataFactory.test_set8()
     TestDataFactory.test_set9()
     TestDataFactory.test_set10()
+    TestDataFactory.test_set11()
 
 if __name__ == "__main__":
     main()
