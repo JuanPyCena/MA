@@ -8,7 +8,7 @@
 #include "utils/makros.h"
 
 #include <string>
-#include <math.h>
+#include <cmath>
 #include <Eigen/Dense>
 
 typedef Eigen::MatrixXd Matrix;
@@ -20,12 +20,11 @@ const Matrix DEFAULT_MATRIX = Matrix();
 class Mvn {
 // Based on the implementation in: http://blog.sarantop.com/notes/mvn
 public:
-    Mvn(const Vector &mu, const Matrix &s);
+    Mvn(const Vector &mu, const Matrix &s): m_mean(mu), m_sigma(s) {}
+    ~Mvn() = default;
     
-    ~Mvn();
-    
-    Vector m_mean;
-    Matrix m_sigma;
+    const Vector& m_mean;
+    const Matrix& m_sigma;
     
     double pdf(const Vector &x) const {
         double n = x.rows();
@@ -64,7 +63,7 @@ public:
         m_previous_data = m_data;
      };
     
-    ~IMMFilterBase() {};
+    ~IMMFilterBase() = default;
 
 protected:
     
@@ -86,7 +85,7 @@ protected:
     } m_data, m_previous_data;  // data containter for current calculation and previous calculation
     
     // This has to be done manually since we don't know the size of the matrices at compile time
-    Matrix createUnityMatrix(int size)
+    static Matrix createUnityMatrix(int size)
     {
         Matrix m(size, size);
         for (int i = 0; i < size; i++)
@@ -114,7 +113,7 @@ public:
     virtual std::string getFilterInfo() = 0;
 
     // Likelihood functions which should be the same for each filter
-    double getLogLikelihood() {
+    double getLogLikelihood() const {
         const Vector mean  = DEFAULT_VECTOR;
         const Matrix sigma = m_data.S;
         const Vector y     = m_data.error;
@@ -122,12 +121,12 @@ public:
         return mvn.logpdf(y);
     }
     
-    double getLikelihood() {
+    double getLikelihood() const {
        double likelihood = exp(getLogLikelihood());
-       if (likelihood == 0)
+       if (likelihood <= 1*exp(-18))
        {
-           // Use e-18 if likelihood is 0 to avoid numerical errors, No filter must have excactly 0 probability
-           // since the state is no longer recoverable than
+           // Use e-18 if likelihood is too small to avoid numerical errors, No filter must have excactly 0 probability
+           // since this state is no longer recoverable
            likelihood = 1*exp(-18);
        }
        return likelihood;

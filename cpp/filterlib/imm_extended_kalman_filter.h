@@ -24,14 +24,14 @@ public:
                                           stateUncertainty,
                                           controlInputMatrix) {}
                                             
-    virtual ~IMMExtendedKalmanFilter() {}
+    virtual ~IMMExtendedKalmanFilter() = default;
     
     // Implementation of the prediction step of the Extended Kalman Filter
-    virtual void predict(const Vector& u=DEFAULT_VECTOR) override;
+    void predict(const Vector& u=DEFAULT_VECTOR) override;
     // Implementation of the update step of the Extended Kalman Filter
-    virtual void update(const Vector& z, const Matrix& R=DEFAULT_MATRIX) override;
+    void update(const Vector& z, const Matrix& R=DEFAULT_MATRIX) override;
     // Returns a string giving Information about which Filter is currently used
-    virtual std::string getFilterInfo() override { return std::string("IMM Extended Kalman Filter"); }
+    std::string getFilterInfo() override { return std::string("IMM Extended Kalman Filter"); }
 
 private:
     // Function pointer for moving state into measurement space
