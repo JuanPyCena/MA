@@ -243,6 +243,10 @@ class InteractingMultipleModel(object):
             state = np.append(state, [1, 1])
             new_state = np.dot(self.expansion_matrix, state)
             return new_state
+        elif len(state) == 2:
+            state = np.append(state, [1, 1, 1, 1])
+            new_state = np.dot(self.expansion_matrix, state)
+            return new_state
         else:
             return state
 
@@ -250,6 +254,14 @@ class InteractingMultipleModel(object):
 
     def _expand_to_imm_covariance(self, covariance, filter_state_dim):
         if filter_state_dim == 4:
+            new_covariance = np.eye(len(self.state))
+            M, N = np.size(covariance, 0), np.size(covariance, 1)
+            for i in range(M):
+                for j in range(N):
+                    new_covariance[i, j] = covariance[i, j]
+            new_covariance = np.dot(np.dot(self.expansion_matrix_covariance, new_covariance), self.expansion_matrix_covariance.T)
+            return new_covariance
+        if filter_state_dim == 2:
             new_covariance = np.eye(len(self.state))
             M, N = np.size(covariance, 0), np.size(covariance, 1)
             for i in range(M):
@@ -271,6 +283,14 @@ class InteractingMultipleModel(object):
                     new_covariance[i, j] = covariance[i, j]
             new_covariance = np.dot(np.dot(self.expansion_matrix_S, new_covariance), self.expansion_matrix_S.T)
             return new_covariance
+        if filter_state_dim == 2:
+            new_covariance = np.eye(len(self.state))
+            M, N = np.size(covariance, 0), np.size(covariance, 1)
+            for i in range(M):
+                for j in range(N):
+                    new_covariance[i, j] = covariance[i, j]
+            new_covariance = np.dot(np.dot(self.expansion_matrix_S, new_covariance), self.expansion_matrix_S.T)
+            return new_covariance
         else:
             return covariance
 
@@ -280,6 +300,9 @@ class InteractingMultipleModel(object):
         if filter_state_dim == 4:
             new_state = np.dot(self.shrinking_matrix, imm_state)
             return new_state
+        if filter_state_dim == 2:
+            new_state = np.dot(self.shrinking_matrix, imm_state)
+            return new_state
         else:
             return imm_state
 
@@ -287,6 +310,9 @@ class InteractingMultipleModel(object):
 
     def _shrink_to_filter_covariance(self, imm_covariance, filter_state_dim):
         if filter_state_dim == 4:
+            new_covariance = np.dot(np.dot(self.shrinking_matrix, imm_covariance), self.shrinking_matrix.T)
+            return new_covariance
+        if filter_state_dim == 2:
             new_covariance = np.dot(np.dot(self.shrinking_matrix, imm_covariance), self.shrinking_matrix.T)
             return new_covariance
         else:

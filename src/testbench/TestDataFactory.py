@@ -452,7 +452,7 @@ class TestDataFactory(object):
         Creates a test set using combined motion, uniform linear -> constant turning -> constant accelaration
         """
         test_file = "D:\\programming\\pycharm\\Masterarbeit\\MA\\src\\testbench\\test_data\\test_data_acc_then_const.csv"
-        time = np.linspace(0, 60, num=601)
+        time = np.linspace(0, 60, num=6001)
 
         # functions to be evalutated by time
         def fun_pos_x(t, old_pos):
