@@ -45,7 +45,7 @@ class TestInteractingMultipleModel(unittest.TestCase):
 
         ekf = ExtendedKalmanFilter(state_ekf, input_ekf, measurement_ekf, transition_ekf,
                                    input_control_matrix_ekf, noise_ekf, covariance_matrix_ekf,
-                                   measurement_matrix_ekf, measurement_uncertainty_ekf)
+                                   measurement_matrix_ekf, measurement_uncertainty_ekf, transition_ekf)
 
         self.filter = [kf, ekf]
 
@@ -72,14 +72,6 @@ class TestInteractingMultipleModel(unittest.TestCase):
 
         self.filterpy_filters = [kf_filterpy1, kf_filterpy2]
         self.kf_filters       = [kf, kf1]
-
-    ##############################################################################
-
-    def H_of(self, x):
-        """ compute Jacobian of H matrix for state x """
-
-        denom = sqrt(x[0] ** 2 + x[1] ** 2 + x[2] ** 2 + x[3] ** 2)
-        return np.array([[x[0] / denom, 0, 0, 0], [0, x[1] / denom, 0, 0], [0, 0, x[2] / denom, 0], [0, 0, 0, x[3] / denom]])
 
     ##############################################################################
 
@@ -147,7 +139,7 @@ class TestInteractingMultipleModel(unittest.TestCase):
         state_before      = imm.state.copy()
         covariance_before = imm.covariance.copy()
 
-        kwds = [{}, {"HJacobian": self.H_of, "Hx": self.hx}]
+        kwds = [{}, {"Hx": self.hx}]
 
         imm.predict_update(self.measuremnet, input=np.array([2, 2, 0, 0]), update_kwds=kwds)
 
@@ -185,8 +177,8 @@ class TestInteractingMultipleModel(unittest.TestCase):
         maximum_state_difference      = np.amax(state_difference)
         maximum_covariance_difference = np.amax(covariance_difference)
 
-        self.assertTrue(maximum_state_difference < 0.1)
-        self.assertTrue(maximum_covariance_difference < 0.15)
+        self.assertTrue(maximum_state_difference == 0)
+        self.assertTrue(maximum_covariance_difference == 0)
 
 if __name__ == '__main__':
     unittest.main()

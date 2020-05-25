@@ -5,6 +5,9 @@ from src.filterlib.Filters import KalmanFilter as KF
 from src.filterlib.Filters import ExtendedKalmanFilter as EKF
 from src.utils.DataFileInterface import DataFilteInterface as DFI
 
+from src.utils.ConfigParser import ParserLib
+from filterpy.kalman import IMMEstimator, KalmanFilter
+
 import re
 import numpy as np
 from math import sqrt
@@ -15,15 +18,9 @@ from src.utils.logmod import Logger
 CFGPATH="D:\\programming\\pycharm\\Masterarbeit\\MA\\config\\imm_2models.cfg"
 KALMANFILTERKEY = "^(KF+)(\d)*$"  # Regex so multiple KF can be used with numbering
 EXTENDEDKALMANFILTERKEY = "^(EKF+)(\d)*$"  # Regex so multiple EKF can be used with numbering
-SIGMA_A_SQ = 0
+SIGMA_A_SQ = 1
 
 log = Logger()
-
-def hx(x):
-    """ takes a state variable and returns the measurement that would
-    correspond to that state.
-    """
-    return x
 
 ##############################################################################
 
@@ -74,14 +71,38 @@ class TestbenchIMM(object):
                                     float(self.test_data_position[idx][1]), float(self.test_data_velocity[idx][1]), float(self.test_data_acceleration[idx][1])])
 
             # Replace all placeholders of sub filters
-            self.imm.calculate_time_depended_matrices_of_filters(float(t) - last_update_time_stamp, measurement)
+            time_delta = float(t) - last_update_time_stamp
+            variables = ["sigma_a_sq", "vx", "vy", "ax", "ay", "x_m", "y_m", "x", "y"]
+            variable_replacement = [SIGMA_A_SQ, self.imm.x[1], self.imm.x[3], self.imm.x[4], self.imm.x[5],
+                                    measurement[0],
+                                    measurement[1], self.imm.x[0], self.imm.x[2]]
+            functions = ["cos", "sin", "arctan"]
+            function_replacement = ["np.cos", "np.sin", "np.arctan"]
+
+            for filter in self.imm.filters:
+                filter.P = ParserLib.evaluate_functional_matrix(filter.P, time_delta, "dt",  variables,
+                                                                                 variable_replacement, functions,
+                                                                                 function_replacement)
+                filter.H = ParserLib.evaluate_functional_matrix(filter.H, time_delta, "dt",  variables,
+                                                                                 variable_replacement, functions,
+                                                                                 function_replacement)
+                filter.F = ParserLib.evaluate_functional_matrix(filter.F, time_delta, "dt",  variables,
+                                                                                 variable_replacement, functions,
+                                                                                 function_replacement)
+                filter.Q = ParserLib.evaluate_functional_matrix(filter.Q, time_delta, "dt",  variables,
+                                                                                 variable_replacement, functions,
+                                                                                 function_replacement)
+                filter.R = ParserLib.evaluate_functional_matrix(filter.R, time_delta, "dt",  variables,
+                                                                                 variable_replacement, functions,
+                                                                                 function_replacement)
+
             # Save update time stamp
             last_update_time_stamp = float(t)
             # Predict and update the state
-            self.imm.predict_update(measurement, update_kwds=self.__ekf_kwds)
-
-            state              = self.imm.state.copy()
-            mode_probabilities = self.imm.mode_probabilities.copy()
+            self.imm.predict()
+            self.imm.update(measurement)
+            state              = self.imm.x.copy()
+            mode_probabilities = self.imm.mu.copy()
             test_data_state    = np.array([float(self.test_data_position[idx][0]), float(self.test_data_velocity[idx][0]), float(self.test_data_acceleration[idx][0]),
                                            float(self.test_data_position[idx][1]), float(self.test_data_velocity[idx][1]), float(self.test_data_acceleration[idx][1])])
 
@@ -112,9 +133,7 @@ class TestbenchIMM(object):
             if re.compile(EXTENDEDKALMANFILTERKEY).match(filter):
                 self.__set_up_extended_kalman_filter(filter)
 
-        return IMM(self.sub_filters, self.config.mode_probabilities, self.config.markov_transition_matrix,
-                   self.config.expansion_matrix, self.config.expansion_matrix_covariance, self.config.expansion_matrix_S,
-                   self.config.shrinking_matrix)
+        return IMMEstimator(self.sub_filters, self.config.mode_probabilities, self.config.markov_transition_matrix)
 
     ##############################################################################
 
@@ -130,66 +149,23 @@ class TestbenchIMM(object):
         covariance_matrix          = np.eye(np.size(self.config.filter_configs[filter_name].transition_matrix, 0))  # P
         measurement_uncertainty    = self.config.filter_configs[filter_name].measurement_uncertainty_matrix  # R
 
-        if np.size(self.config.filter_configs[filter_name].transition_matrix, 0) == 4:
-            initial_state = np.array([self.initial_state[0], self.initial_state[1], self.initial_state[3], self.initial_state[4]])
-            initial_input = np.array([self.initial_input[0], self.initial_input[1]])
-            initial_measurement = np.array([self.initial_measurement[0], self.initial_measurement[1], self.initial_measurement[3], self.initial_measurement[4]])
-        elif np.size(self.config.filter_configs[filter_name].transition_matrix, 0) == 2:
-            initial_state = np.array([self.initial_state[0], self.initial_state[3]])
-            initial_input = np.array([self.initial_input[0], self.initial_input[1]])
-            initial_measurement = np.array([self.initial_measurement[0], self.initial_measurement[3]])
-        else:
-            initial_state = self.initial_state
-            initial_input = self.initial_input
-            initial_measurement = self.initial_measurement
+        initial_state = self.initial_state
+        initial_input = self.initial_input
+        initial_measurement = self.initial_measurement
 
-        kf = KF(initial_state, initial_input, initial_measurement, transition_matrix,
-                input_control_matrix, process_noise_matrix, covariance_matrix,
-                measurement_control_matrix, measurement_uncertainty)
+        kf = KalmanFilter(len(initial_state), len(initial_measurement))
+        kf.x = initial_state
+        kf.F = transition_matrix
+        kf.H = measurement_control_matrix
+        kf.P = covariance_matrix
+        kf.R = measurement_uncertainty
+        kf.Q = process_noise_matrix
 
         # Append empty dictionary since we don't need any additional functions for the KF
         self.__ekf_kwds.append({})
 
         self.sub_filters_dict[filter_name] = kf
         self.sub_filters.append(kf)
-
-    ##############################################################################
-
-    def __set_up_extended_kalman_filter(self, filter_name):
-        """
-        This functions initiliazes an extended kalman filter with the read configuration and saves it into a list and dictionary
-        :param filter_name: str - name of the extended kalman filter to be initialized
-        """
-        transition_matrix          = self.config.filter_configs[filter_name].transition_matrix               # F
-        jacobi_matrix              = self.config.filter_configs[filter_name].jacobi_matrix                   # J
-        measurement_control_matrix = self.config.filter_configs[filter_name].measurement_control_matrix      # H
-        input_control_matrix       = self.config.filter_configs[filter_name].input_control_matrix            # B/G
-        process_noise_matrix       = self.config.filter_configs[filter_name].process_noise_matrix            # Q
-        covariance_matrix          = np.eye(np.size(self.config.filter_configs[filter_name].transition_matrix, 0))   # P
-        measurement_uncertainty    = self.config.filter_configs[filter_name].measurement_uncertainty_matrix  # R
-
-        if np.size(self.config.filter_configs[filter_name].transition_matrix, 0) == 4:
-            initial_state = np.array([self.initial_state[0], self.initial_state[1], self.initial_state[3], self.initial_state[4]])
-            initial_input = np.array([self.initial_input[0], self.initial_input[1], self.initial_input[3], self.initial_input[4]])
-            initial_measurement = np.array([self.initial_measurement[0], self.initial_measurement[1], self.initial_measurement[3], self.initial_measurement[4]])
-        elif np.size(self.config.filter_configs[filter_name].transition_matrix, 0) == 2:
-            initial_state = np.array([self.initial_state[0], self.initial_state[3]])
-            initial_input = np.array([self.initial_input[0], self.initial_input[3]])
-            initial_measurement = np.array([self.initial_measurement[0], self.initial_measurement[3]])
-        else:
-            initial_state = self.initial_state
-            initial_input = self.initial_input
-            initial_measurement = self.initial_measurement
-
-        ekf = EKF(initial_state, initial_input, initial_measurement, transition_matrix,
-                  input_control_matrix, process_noise_matrix, covariance_matrix,
-                  measurement_control_matrix, measurement_uncertainty, jacobi_matrix)
-
-        # Append required functions for the EKF
-        self.__ekf_kwds.append({"Hx": hx})
-
-        self.sub_filters_dict[filter_name] = ekf
-        self.sub_filters.append(ekf)
 
     #EOC
 #EOF

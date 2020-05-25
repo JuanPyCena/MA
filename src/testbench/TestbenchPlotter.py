@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -11,9 +12,15 @@ class TestbenchPlotter(object):
         # Determine path were figures should be saved to
         _, self.plot_name_test_data = test_data_file.rsplit("\\", 1)
         _, self.plot_name_imm_data = imm_data_file.rsplit("\\", 1)
-        self.plot_name_combined_data = "D:\\programming\\pycharm\\Masterarbeit\\MA\\src\\testbench\\plots\\" + self.plot_name_imm_data[:-4]  + "_combined_plot"
-        self.plot_name_test_data = "D:\\programming\\pycharm\\Masterarbeit\\MA\\src\\testbench\\plots\\" + self.plot_name_test_data[:-4] + "_test_data_plot"
-        self.plot_name_imm_data = "D:\\programming\\pycharm\\Masterarbeit\\MA\\src\\testbench\\plots\\" + self.plot_name_imm_data[:-4]  + "_imm_data_plot"
+        subfolder_name = self.plot_name_imm_data[:-4]
+        _, _, subfolder_name = subfolder_name.split("_", 2)
+        try:
+            os.mkdir("D:\\programming\\pycharm\\Masterarbeit\\MA\\src\\testbench\\plots\\" + subfolder_name)
+        except:
+            pass
+        self.plot_name_combined_data = "D:\\programming\\pycharm\\Masterarbeit\\MA\\src\\testbench\\plots\\" + subfolder_name + "\\" + self.plot_name_imm_data[:-4]  + "_combined_plot"
+        self.plot_name_test_data = "D:\\programming\\pycharm\\Masterarbeit\\MA\\src\\testbench\\plots\\" + subfolder_name + "\\" + self.plot_name_test_data[:-4] + "_test_data_plot"
+        self.plot_name_imm_data = "D:\\programming\\pycharm\\Masterarbeit\\MA\\src\\testbench\\plots\\" + subfolder_name + "\\" + self.plot_name_imm_data[:-4]  + "_imm_data_plot"
 
         # Read test data
         self.test_data = DFI.read_test_data(test_data_file)
@@ -34,9 +41,9 @@ class TestbenchPlotter(object):
             pos, vel, acc = [], [], []
             pos.append(data_point[0])
             vel.append(data_point[1])
-            pos.append(data_point[2])
-            vel.append(data_point[3])
-            acc.append(data_point[4])
+            acc.append(data_point[2])
+            pos.append(data_point[3])
+            vel.append(data_point[4])
             acc.append(data_point[5])
             position_measurement.append(pos)
             velocity_measurement.append(vel)
@@ -54,9 +61,9 @@ class TestbenchPlotter(object):
             pos, vel, acc = [], [], []
             pos.append(data_point[0])
             vel.append(data_point[1])
-            pos.append(data_point[2])
-            vel.append(data_point[3])
-            acc.append(data_point[4])
+            acc.append(data_point[2])
+            pos.append(data_point[3])
+            vel.append(data_point[4])
             acc.append(data_point[5])
             position_state.append(pos)
             velocity_state.append(vel)
@@ -74,9 +81,9 @@ class TestbenchPlotter(object):
             pos, vel, acc = [], [], []
             pos.append(data_point[0])
             vel.append(data_point[1])
-            pos.append(data_point[2])
-            vel.append(data_point[3])
-            acc.append(data_point[4])
+            acc.append(data_point[2])
+            pos.append(data_point[3])
+            vel.append(data_point[4])
             acc.append(data_point[5])
             position_errors.append(pos)
             velocity_errors.append(vel)
@@ -146,7 +153,10 @@ class TestbenchPlotter(object):
         y_acc_error       = [acc[1] for acc in self.imm_data["acceleration_error"]]
         mode_prob_1       = [prob[0] for prob in self.imm_data["mode_probabilities"]]
         mode_prob_2       = [prob[1] for prob in self.imm_data["mode_probabilities"]]
-        mode_prob_3       = [prob[2] for prob in self.imm_data["mode_probabilities"]]
+        try:
+            mode_prob_3       = [prob[2] for prob in self.imm_data["mode_probabilities"]]
+        except:
+            pass
 
         fig, axs = plt.subplots(3)
         axs[0].plot(x_pos_measurement, y_pos_measurement)
@@ -189,7 +199,10 @@ class TestbenchPlotter(object):
         fig, axs = plt.subplots(1)
         axs.plot(self.test_data["time"][:-1], mode_prob_1, label="Mode1")
         axs.plot(self.test_data["time"][:-1], mode_prob_2, label="Mode2")
-        axs.plot(self.test_data["time"][:-1], mode_prob_3, label="Mode3")
+        try:
+            axs.plot(self.test_data["time"][:-1], mode_prob_3, label="Mode3")
+        except:
+            pass
         axs.set_xticklabels([])
         axs.set_xticks([])
         axs.set_xlabel("Time")

@@ -17,6 +17,10 @@ FILTERKEY = "filters"
 STATEKEY = "state"
 MARKOVMATRIXKEY = "markov_transition_matrix"
 MODEPROBABILITIESKEY = "mode_probabilities"
+EXPANSIONMATRIXKEY = "expansion_matrix"
+EXPANSIONMATRIXCOVARIANCEKEY = "expansion_matrix_covariance"
+EXPANSIONMATRIXSKEY = "expansion_matrix_s"
+SHRINKINGMATRIXKEY = "shrinking_matrix"
 
 # Filter keys
 KALMANFILTERKEY = "^(KF+)(\d)*$"  # Regex so multiple KF can be used with numbering
@@ -25,6 +29,7 @@ KNOWNFILTERKEYS = [KALMANFILTERKEY, EXTENDEDKALMANFILTERKEY]
 
 # KF/EKF filter
 TRANSITIONMATRIX = "transition_matrix"
+JACOBIMATRIX = "jacobi_matrix"
 INPUTCONTROLMATRIX = "input_control_matrix"
 PROCESSNOISEMATRIX = "process_noise_matrix"
 COVARIANCEMATRIX = "covariance_matrix"
@@ -183,6 +188,67 @@ class ParserLib(object):
     ##############################################################################
 
     @staticmethod
+    def evaluate_functional_matrix(matrix, time, time_variable, other_variables, other_variables_replacements, functions, function_replacements):
+        """
+        This function replaces the time depended variable within a given matrix and replaces it with the actual value.
+        The timedependend variable may be part of an pytonic mathematical expression (e.g.: dt**4/4), this expression
+        is evaulated and the result is entered within the matrix
+        :param matrix: np.ndarray - holds data containing timedependend variables which should be replaced with numerical value
+        :param time: float - time which should be inserted into the matrix
+        :param time_variable: str - key for the time dependend variable, gets replaced by the actual time value
+        :return: matrix_replaced: np.ndarray - holds the matrix containing only float values
+        TODO
+        """
+
+        def contains_word(s, w):
+            return (' ' + w + ' ') in (s)
+
+        def contains_fun(s, w):
+            return (w + ' (') in (s)
+
+        def add_whitespace(s):
+            ret = [" "]
+            for idx, letter in enumerate(s):
+                if letter in ["+", "-", "*", "/", "(", ")", ","]:
+                    ret.append(" " + letter + " ")
+                else:
+                    ret.append(letter)
+            return "".join(ret)
+
+        matrix_replaced = np.zeros(matrix.shape)
+        for row_col, elem in np.ndenumerate(matrix):
+            try:
+                elem = float(elem)
+            except:
+                elem = elem.replace(time_variable, str(time))
+                elem = add_whitespace(elem)
+                for idx, fun in enumerate(functions):
+                    if contains_fun(elem, fun):
+                        elem = elem.replace(fun, str(function_replacements[idx]))
+
+                for idx, variable in enumerate(other_variables):
+                    if contains_word(elem, variable):
+                        elem = elem.replace(variable, str(other_variables_replacements[idx]))
+
+                for idx, variable in enumerate(other_variables):
+                        elem = elem.replace(variable, str(other_variables_replacements[idx]))
+
+                elem = elem.replace(" ", "")
+                elem = elem.replace("0/0", "0")
+                if "//" in elem:
+                    nom, denom = elem.split("//")
+                    nom_val = eval(nom)
+                    denom_val = eval(denom)
+                    elem = str(nom_val) + "/" + str(denom_val)
+
+                elem = elem.replace("0/0", "0")
+                elem = eval(elem)
+            matrix_replaced[row_col] = elem
+        return matrix_replaced.astype(float)
+
+    ##############################################################################
+
+    @staticmethod
     def _check_for_errors(line, **kwargs):
         # check if all brackets are opened and closed correctly
         if "brackets" in kwargs.keys():
@@ -235,7 +301,11 @@ class ConfigurationParser(object):
         self.filters                  = []  # list which holds what kind of filters are used for the IMM
         self.markov_transition_matrix = np.array([])  # quadratic matrix which defines the transitions between the modes
         self.mode_probabilities       = np.array([])  # vector which holds the probability of each mode
-        self.filter_configs           = {}  # dcit which holds the configs of the filters used of by the IMM
+        self.filter_configs           = {}  # dict which holds the configs of the filters used of by the IMM
+        self.expansion_matrix         = np.array([])
+        self.expansion_matrix_covariance         = np.array([])
+        self.expansion_matrix_S        = np.array([])
+        self.shrinking_matrix         = np.array([])
 
         # private variables
         self.__known_variables = {}
@@ -247,7 +317,11 @@ class ConfigurationParser(object):
             "filters" : FILTERKEY,
             "state" : STATEKEY,
             "markov_transition_matrix" : MARKOVMATRIXKEY,
-            "mode_probabilities" : MODEPROBABILITIESKEY
+            "mode_probabilities" : MODEPROBABILITIESKEY,
+            "expansion_matrix" : EXPANSIONMATRIXKEY,
+            "expansion_matrix_covariance" : EXPANSIONMATRIXCOVARIANCEKEY,
+            "expansion_matrix_s" : EXPANSIONMATRIXSKEY,
+            "shrinking_matrix" : SHRINKINGMATRIXKEY
         }
 
         # read config
@@ -310,6 +384,18 @@ class ConfigurationParser(object):
                                                               code_variables=self.__code_variables,
                                                               known_variables=self.__known_variables)
         self.mode_probabilities       = ParserLib.read_matrix(self.__config["IMM"][cfg_params["mode_probabilities"]],
+                                                              code_variables=self.__code_variables,
+                                                              known_variables=self.__known_variables)
+        self.expansion_matrix         = ParserLib.read_matrix(self.__config["IMM"][cfg_params["expansion_matrix"]],
+                                                              code_variables=self.__code_variables,
+                                                              known_variables=self.__known_variables)
+        self.expansion_matrix_covariance         = ParserLib.read_matrix(self.__config["IMM"][cfg_params["expansion_matrix_covariance"]],
+                                                              code_variables=self.__code_variables,
+                                                              known_variables=self.__known_variables)
+        self.expansion_matrix_S         = ParserLib.read_matrix(self.__config["IMM"][cfg_params["expansion_matrix_s"]],
+                                                              code_variables=self.__code_variables,
+                                                              known_variables=self.__known_variables)
+        self.shrinking_matrix         = ParserLib.read_matrix(self.__config["IMM"][cfg_params["shrinking_matrix"]],
                                                               code_variables=self.__code_variables,
                                                               known_variables=self.__known_variables)
 
@@ -416,7 +502,8 @@ class KalmanFilterConfigParser(object):
         # Optional parameters
         self.input_control_matrix           = self.__read_optional_matrix_parameters(INPUTCONTROLMATRIX,
                                                                                      cfg_params["input_control_matrix"],
-                                                                                     np.size(self.transition_matrix, 1))
+                                                                                     self.transition_matrix.shape,
+                                                                                     optional=np.zeros)
         self.process_noise_matrix           = self.__read_optional_matrix_parameters(PROCESSNOISEMATRIX,
                                                                                      cfg_params["process_noise_matrix"],
                                                                                      self.transition_matrix.shape,
@@ -468,6 +555,7 @@ class ExtendedKalmanFilterConfigParser(object):
         """
         # public variables
         self.transition_matrix = np.array([])  # F, quadratic matrix which defines the transitions of the state
+        self.jacobi_matrix = np.array([])  # J, jacobi matrix
         self.measurement_control_matrix = np.array([])  # H, matrix which holds controls the measurement
         self.input_control_matrix = np.array([])  # B/G, matrix which controls the input
         self.process_noise_matrix = np.array([])  # Q, matrix to control the process noise
@@ -487,6 +575,7 @@ class ExtendedKalmanFilterConfigParser(object):
         # local variables
         EKF_cfg_params = {
             "transition_matrix": TRANSITIONMATRIX,
+            "jacobi_matrix": JACOBIMATRIX,
             "input_control_matrix": INPUTCONTROLMATRIX,
             "process_noise_matrix": PROCESSNOISEMATRIX,
             "covariance_matrix": COVARIANCEMATRIX,
@@ -494,7 +583,7 @@ class ExtendedKalmanFilterConfigParser(object):
             "measurement_uncertainty_matrix": MEASUREMENTUNCERTAINTYMATRIX
         }
         self.__known_variables.update(ParserLib.read_known_variables(self.__config[self.__filter_key],
-                                      required_params=[TRANSITIONMATRIX, INPUTCONTROLMATRIX, PROCESSNOISEMATRIX,
+                                      required_params=[TRANSITIONMATRIX, JACOBIMATRIX, INPUTCONTROLMATRIX, PROCESSNOISEMATRIX,
                                                        COVARIANCEMATRIX, MEASUREMENTCONTROLMATRIX,
                                                        MEASUREMENTUNCERTAINTYMATRIX]))
         self.__read_EKF_filter_config(EKF_cfg_params)
@@ -509,6 +598,7 @@ class ExtendedKalmanFilterConfigParser(object):
         # check if variables are present in config be accessing them
         try:
             _ = self.__config[self.__filter_key][cfg_params["transition_matrix"]]
+            _ = self.__config[self.__filter_key][cfg_params["jacobi_matrix"]]
             _ = self.__config[self.__filter_key][cfg_params["measurement_control_matrix"]]
         except:
             raise SyntaxError(
@@ -517,6 +607,9 @@ class ExtendedKalmanFilterConfigParser(object):
 
         # Read values which must be present
         self.transition_matrix = ParserLib.read_matrix(self.__config[self.__filter_key][cfg_params["transition_matrix"]],
+                                                       code_variables=self.__code_variables,
+                                                       known_variables=self.__known_variables)
+        self.jacobi_matrix = ParserLib.read_matrix(self.__config[self.__filter_key][cfg_params["jacobi_matrix"]],
                                                        code_variables=self.__code_variables,
                                                        known_variables=self.__known_variables)
         self.measurement_control_matrix = ParserLib.read_matrix(self.__config[self.__filter_key][cfg_params["measurement_control_matrix"]],
@@ -556,6 +649,7 @@ class ExtendedKalmanFilterConfigParser(object):
 
     def __loading_successfull(self):
         if self.transition_matrix == EmptyArray: return False
+        if self.jacobi_matrix == EmptyArray: return False
         if self.measurement_control_matrix == EmptyArray: return False
         if self.input_control_matrix == EmptyArray: return False
         if self.process_noise_matrix == EmptyArray: return False

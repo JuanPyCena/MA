@@ -15,6 +15,7 @@ class TestExtendedKalmanFilter(unittest.TestCase):
         self.input                   = np.array([1, 0])  # u
         self.measurement             = np.array([1, 0])  # z
         self.transition              = np.array([[2, 0], [0, 1]])  # F
+        self.jacobi                  = np.array([[2, 0], [0, 1]])  # F
         self.input_control_matrix    = np.array([[1, 0], [0, 1]])  # G
         self.noise                   = np.array([[1, 0], [0, 1]])  # Q
         self.covariance_matrix       = np.array([[1, 0], [0, 1]])  # P
@@ -26,30 +27,26 @@ class TestExtendedKalmanFilter(unittest.TestCase):
         self.measurement = self.measurement.T  # z
 
     def H_of(self, x):
-        horiz_dist = x[0]
-        altitude = x[1]
-
-        denom = sqrt(horiz_dist ** 2 + altitude ** 2)
-        return np.array([[horiz_dist / denom, 0], [0, altitude / denom]])
+        return self.transition
 
     def hx(self, x):
-        return sqrt(x[0] ** 2 + x[1] ** 2)
+        return x
 
     def test_constructor_error_no_arguments(self):
         with self.assertRaises(TypeError) as context:
             ExtendedKalmanFilter()
 
-        self.assertTrue("missing 9 required positional arguments: 'initial_state', "
+        self.assertTrue("missing 10 required positional arguments: 'initial_state', "
                         "'inital_input', 'initial_measurement', 'state_transition_matrix', "
                         "'control_input_matrix', 'process_noise_matrix', 'initial_covariance_covariance_matrix', "
-                        "'inital_measurement_function', and 'inital_state_uncertainty'" in str(context.exception))
+                        "'inital_measurement_function', 'inital_state_uncertainty', and 'jacobi_matrix'" in str(context.exception))
 
     ##############################################################################
 
     def test_constructor_no_error(self):
         try:
             ekf = ExtendedKalmanFilter(self.state, self.input, self.measurement, self.transition, self.input_control_matrix, self.noise, self.covariance_matrix,
-                              self.measurement_matrix, self.measurement_uncertainty)
+                              self.measurement_matrix, self.measurement_uncertainty, self.jacobi)
         except TypeError:
             self.assertTrue(False)
 
@@ -58,7 +55,7 @@ class TestExtendedKalmanFilter(unittest.TestCase):
     def test_constructor_wrong_type(self):
         with self.assertRaises(AssertionError) as context:
             ExtendedKalmanFilter(int(5), self.input, self.measurement, self.transition, self.input_control_matrix, self.noise, self.covariance_matrix,
-                              self.measurement_matrix, self.measurement_uncertainty)
+                              self.measurement_matrix, self.measurement_uncertainty, self.jacobi)
 
         self.assertTrue("arg 5 does not match <class 'numpy.ndarray'>" in str(context.exception))
 
@@ -67,7 +64,7 @@ class TestExtendedKalmanFilter(unittest.TestCase):
 
     def test_predict_no_arguments(self):
         ekf = ExtendedKalmanFilter(self.state, self.input, self.measurement, self.transition, self.input_control_matrix, self.noise, self.covariance_matrix,
-                          self.measurement_matrix, self.measurement_uncertainty)
+                          self.measurement_matrix, self.measurement_uncertainty, self.jacobi)
 
         state_before      = ekf.state.copy()
         covariance_before = ekf.covariance.copy()
@@ -87,7 +84,7 @@ class TestExtendedKalmanFilter(unittest.TestCase):
 
     def test_predict_input_arguments(self):
         ekf = ExtendedKalmanFilter(self.state, self.input, self.measurement, self.transition, self.input_control_matrix, self.noise, self.covariance_matrix,
-                          self.measurement_matrix, self.measurement_uncertainty)
+                          self.measurement_matrix, self.measurement_uncertainty, self.jacobi)
 
         state_before      = ekf.state.copy()
         covariance_before = ekf.covariance.copy()
@@ -107,7 +104,7 @@ class TestExtendedKalmanFilter(unittest.TestCase):
 
     def test_predict_argument_errors(self):
         ekf = ExtendedKalmanFilter(self.state, self.input, self.measurement, self.transition, self.input_control_matrix, self.noise, self.covariance_matrix,
-                          self.measurement_matrix, self.measurement_uncertainty)
+                          self.measurement_matrix, self.measurement_uncertainty, self.jacobi)
 
         with self.assertRaises(AssertionError) as context:
             ekf.predict(input=int(5))
@@ -124,7 +121,7 @@ class TestExtendedKalmanFilter(unittest.TestCase):
     def test_update_measurement_arguments(self):
         ekf = ExtendedKalmanFilter(np.copy(self.state), self.input, self.measurement, self.transition,
                                    self.input_control_matrix, self.noise, np.copy(self.covariance_matrix),
-                                   self.measurement_matrix, self.measurement_uncertainty)
+                                   self.measurement_matrix, self.measurement_uncertainty, self.jacobi)
 
         state_before      = ekf.state.copy()
         covariance_before = ekf.covariance.copy()
@@ -132,7 +129,7 @@ class TestExtendedKalmanFilter(unittest.TestCase):
         self.assertTrue(np.array_equal(state_before, self.state))
         self.assertTrue(np.array_equal(covariance_before, self.covariance_matrix))
 
-        ekf.update(z=np.array([2,2]), HJacobian=self.H_of, Hx=self.hx)
+        ekf.update(z=np.array([2,2]), Hx=self.hx)
 
         state_after      = ekf.state.copy()
         covariance_after = ekf.covariance.copy()
@@ -144,12 +141,12 @@ class TestExtendedKalmanFilter(unittest.TestCase):
 
     def test_update_argument_errors(self):
         ekf = ExtendedKalmanFilter(self.state, self.input, self.measurement, self.transition, self.input_control_matrix, self.noise, self.covariance_matrix,
-                          self.measurement_matrix, self.measurement_uncertainty)
+                          self.measurement_matrix, self.measurement_uncertainty, self.jacobi)
 
         with self.assertRaises(TypeError) as context:
             ekf.update()
 
-        self.assertTrue("update() missing 3 required positional arguments: 'z', 'HJacobian', and 'Hx'" in str(context.exception))
+        self.assertTrue("update() missing 2 required positional arguments: 'z' and 'Hx'" in str(context.exception))
 
         with self.assertRaises(AssertionError) as context:
             ekf.update(z=int(5))
@@ -167,34 +164,29 @@ class TestExtendedKalmanFilter(unittest.TestCase):
         with self.assertRaises(AssertionError) as context:
             ekf.update(np.array([2,2]), fun, int(5))
 
-        self.assertTrue("arg 5 does not match <class 'function'>" in str(context.exception))
+        self.assertTrue("arg 5 does not match (<class 'tuple'>,)" in str(context.exception))
 
         with self.assertRaises(AssertionError) as context:
-            ekf.update(np.array([2,2]), fun, fun, int(5))
+            ekf.update(np.array([2,2]), fun,  tuple(), int(5))
 
         self.assertTrue("arg 5 does not match (<class 'tuple'>,)" in str(context.exception))
 
         with self.assertRaises(AssertionError) as context:
-            ekf.update(np.array([2,2]), fun, fun, tuple(), int(5))
-
-        self.assertTrue("arg 5 does not match (<class 'tuple'>,)" in str(context.exception))
-
-        with self.assertRaises(AssertionError) as context:
-            ekf.update(np.array([2,2]), fun, fun, tuple(), tuple(), int(5))
+            ekf.update(np.array([2,2]), fun,  tuple(), tuple(), int(5))
 
         self.assertTrue("arg 5 does not match (<class 'numpy.ndarray'>,)" in str(context.exception))
 
         with self.assertRaises(TypeError) as context:
-            ekf.update(np.array([2,2]), fun, fun, tuple(), tuple(), np.array([2,2]), int(5))
+            ekf.update(np.array([2,2]), fun, tuple(), tuple(), np.array([2,2]), int(5))
 
-        self.assertTrue("update() takes from 4 to 7 positional arguments but 8 were given" in str(context.exception))
+        self.assertTrue("update() takes from 3 to 6 positional arguments but 7 were given" in str(context.exception))
 
     ##############################################################################
 
     def test_predict_update_measurement_arguments(self):
         ekf = ExtendedKalmanFilter(np.copy(self.state), self.input, self.measurement, self.transition,
                                    self.input_control_matrix, self.noise, np.copy(self.covariance_matrix),
-                                   self.measurement_matrix, self.measurement_uncertainty)
+                                   self.measurement_matrix, self.measurement_uncertainty, self.jacobi)
 
         state_before = ekf.state.copy()
         covariance_before = ekf.covariance.copy()
@@ -202,7 +194,7 @@ class TestExtendedKalmanFilter(unittest.TestCase):
         self.assertTrue(np.array_equal(state_before, self.state))
         self.assertTrue(np.array_equal(covariance_before, self.covariance_matrix))
 
-        ekf.predict_update(z=np.array([2, 2]), HJacobian=self.H_of, Hx=self.hx)
+        ekf.predict_update(z=np.array([2, 2]), Hx=self.hx)
 
         state_after = ekf.state.copy()
         covariance_after = ekf.covariance.copy()
@@ -214,12 +206,12 @@ class TestExtendedKalmanFilter(unittest.TestCase):
 
     def test_predict_update_argument_errors(self):
         ekf = ExtendedKalmanFilter(self.state, self.input, self.measurement, self.transition, self.input_control_matrix, self.noise, self.covariance_matrix,
-                          self.measurement_matrix, self.measurement_uncertainty)
+                          self.measurement_matrix, self.measurement_uncertainty, self.jacobi)
 
         with self.assertRaises(TypeError) as context:
             ekf.predict_update()
 
-        self.assertTrue("predict_update() missing 3 required positional arguments: 'z', 'HJacobian', and 'Hx'" in str(context.exception))
+        self.assertTrue("predict_update() missing 2 required positional arguments: 'z' and 'Hx'" in str(context.exception))
 
         with self.assertRaises(AssertionError) as context:
             ekf.predict_update(z=int(5))
@@ -237,33 +229,28 @@ class TestExtendedKalmanFilter(unittest.TestCase):
         with self.assertRaises(AssertionError) as context:
             ekf.predict_update(np.array([2,2]), fun, int(5))
 
-        self.assertTrue("arg 5 does not match <class 'function'>" in str(context.exception))
+        self.assertTrue("arg 5 does not match (<class 'tuple'>,)" in str(context.exception))
 
         with self.assertRaises(AssertionError) as context:
-            ekf.predict_update(np.array([2,2]), fun, fun, int(5))
+            ekf.predict_update(np.array([2,2]), fun, tuple(), int(5))
 
         self.assertTrue("arg 5 does not match (<class 'tuple'>,)" in str(context.exception))
 
         with self.assertRaises(AssertionError) as context:
-            ekf.predict_update(np.array([2,2]), fun, fun, tuple(), int(5))
-
-        self.assertTrue("arg 5 does not match (<class 'tuple'>,)" in str(context.exception))
-
-        with self.assertRaises(AssertionError) as context:
-            ekf.predict_update(np.array([2,2]), fun, fun, tuple(), tuple(), int(5))
+            ekf.predict_update(np.array([2,2]), fun, tuple(), tuple(), int(5))
 
         self.assertTrue("arg 5 does not match (<class 'numpy.ndarray'>,)" in str(context.exception))
 
         with self.assertRaises(TypeError) as context:
-            ekf.predict_update(np.array([2,2]), fun, fun, tuple(), tuple(), np.array([2,2]), int(5))
+            ekf.predict_update(np.array([2,2]), fun, tuple(), tuple(), np.array([2,2]), int(5))
 
-        self.assertTrue("predict_update() takes from 4 to 7 positional arguments but 8 were given" in str(context.exception))
+        self.assertTrue("predict_update() takes from 3 to 6 positional arguments but 7 were given" in str(context.exception))
 
     ##############################################################################
 
     def test_compare_predict_with_filterpy(self):
         ekf = ExtendedKalmanFilter(self.state, self.input, self.measurement, self.transition, self.input_control_matrix, self.noise, self.covariance_matrix,
-                          self.measurement_matrix, self.measurement_uncertainty)
+                          self.measurement_matrix, self.measurement_uncertainty, self.jacobi)
 
         ekf_filterpy = ExtendedKalmanFilter_filterpy(2, 2, 2)
         ekf_filterpy.x = self.state
@@ -292,7 +279,7 @@ class TestExtendedKalmanFilter(unittest.TestCase):
 
     def test_compare_update_with_filterpy(self):
         ekf = ExtendedKalmanFilter(self.state, self.input, self.measurement, self.transition, self.input_control_matrix, self.noise, self.covariance_matrix,
-                          self.measurement_matrix, self.measurement_uncertainty)
+                          self.measurement_matrix, self.measurement_uncertainty, self.jacobi)
 
         ekf_filterpy = ExtendedKalmanFilter_filterpy(2, 2, 2)
         ekf_filterpy.x = self.state
@@ -304,7 +291,7 @@ class TestExtendedKalmanFilter(unittest.TestCase):
         ekf_filterpy.Q = self.noise
 
         # Update using implemented EKF
-        ekf.update(z=np.array([1,2]), HJacobian=self.H_of, Hx=self.hx)
+        ekf.update(z=np.array([1,2]), Hx=self.hx)
         # Predict using EKF from filterpy
         ekf_filterpy.update(z=np.array([1,2]), HJacobian=self.H_of, Hx=self.hx, R=self.covariance_matrix)
 
@@ -321,7 +308,7 @@ class TestExtendedKalmanFilter(unittest.TestCase):
 
     def test_compare_predict_update_with_filterpy(self):
         ekf = ExtendedKalmanFilter(self.state, self.input, self.measurement, self.transition, self.input_control_matrix, self.noise, self.covariance_matrix,
-                          self.measurement_matrix, self.measurement_uncertainty)
+                          self.measurement_matrix, self.measurement_uncertainty, self.jacobi)
 
         ekf_filterpy = ExtendedKalmanFilter_filterpy(2, 2, 2)
         ekf_filterpy.x = self.state
@@ -333,7 +320,7 @@ class TestExtendedKalmanFilter(unittest.TestCase):
         ekf_filterpy.Q = self.noise
 
         # Predict Update using implemented EKF
-        ekf.predict_update(z=np.array([2, 1]), HJacobian=self.H_of, Hx=self.hx, args=(), hx_args=(), u=np.array([1, 2]))
+        ekf.predict_update(z=np.array([2, 1]), Hx=self.hx, args=(), hx_args=(), u=np.array([1, 2]))
 
         # Predict and updates using EKF from filterpy. Do not use predict_update as this leads to a different
         # result then using predict and update in series
@@ -348,7 +335,6 @@ class TestExtendedKalmanFilter(unittest.TestCase):
         # Update of both filters must be the same
         self.assertTrue(np.array_equal(state_ekf, state_ekf_filterpy))
         self.assertTrue(np.array_equal(covariance_ekf, covariance_ekf_filterpy))
-
 
 if __name__ == '__main__':
     unittest.main()
