@@ -4,7 +4,10 @@
 
 #include "imm_extended_kalman_filter.h"
 
-void IMMExtendedKalmanFilter::predict(const Vector &u) {
+void IMMExtendedKalmanFilter::predict(const Vector &u)
+{
+    // Save previous data
+    m_previous_data = m_data;
     const Matrix& F = m_data.F;
     const Matrix& B = m_data.B;
     const Matrix& Q = m_data.Q;

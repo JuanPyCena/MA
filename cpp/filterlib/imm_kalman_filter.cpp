@@ -6,6 +6,8 @@
 
 void IMMKalmanFilter::predict(const Vector& u)
 {
+    // Save previous data
+    m_previous_data = m_data;
     const Matrix& F = m_data.F;
     const Matrix& B = m_data.B;
     const Matrix& Q = m_data.Q;
