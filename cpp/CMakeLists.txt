@@ -7,4 +7,4 @@ include_directories(.)
 include_directories(${EIGEN3_INCLUDE_DIR})
 
 add_executable(cpp
-        main.cpp filterlib/imm_kalman_filter.cpp filterlib/imm_kalman_filter.h filterlib/imm_estimator.cpp filterlib/imm_estimator.h filterlib/imm_filter_base.h utils/makros.h utils/multivariante_density_normal_distribution.h)
+        main.cpp filterlib/imm_kalman_filter.cpp filterlib/imm_kalman_filter.h filterlib/imm_estimator.cpp filterlib/imm_estimator.h filterlib/imm_filter_base.h utils/makros.h utils/multivariante_density_normal_distribution.h filterlib/imm_extended_kalman_filter.cpp filterlib/imm_extended_kalman_filter.h)

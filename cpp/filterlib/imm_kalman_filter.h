@@ -9,7 +9,23 @@
 
 class IMMKalmanFilter : public IMMFilterBase
 {
-
+public:
+    IMMKalmanFilter(const Vector &initialState, const Matrix &transitionsMatrix,
+                    const Matrix &covarianceMatrix, const Matrix &measurementMatrix,
+                    const Matrix &processNoise, const Matrix &stateUncertainty,
+                    const Matrix &controlInputMatrix) : IMMFilterBase(initialState, transitionsMatrix,
+                                                                      covarianceMatrix, measurementMatrix,
+                                                                      processNoise, stateUncertainty,
+                                                                      controlInputMatrix) {}
+    
+    virtual ~IMMKalmanFilter() {}
+    
+    // Implementation of the prediction step of the Kalman Filter
+    virtual void predict(const Vector& u=DEFAULT_VECTOR) override;
+    // Implementation of the update step of the Kalman Filter
+    virtual void update(const Vector& z, const Matrix& R=DEFAULT_MATRIX) override;
+    // Returns a string giving Information about which Filter is currently used
+    virtual std::string getFilterInfo() override { return std::string("IMM Kalman Filter"); }
 };
 
 

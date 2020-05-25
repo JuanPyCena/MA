@@ -2,10 +2,9 @@
 // Created by Felix on 25.05.2020.
 //
 
-#include "imm_kalman_filter.h"
+#include "imm_extended_kalman_filter.h"
 
-void IMMKalmanFilter::predict(const Vector& u)
-{
+void IMMExtendedKalmanFilter::predict(const Vector &u) {
     const Matrix& F = m_data.F;
     const Matrix& B = m_data.B;
     const Matrix& Q = m_data.Q;
@@ -28,13 +27,13 @@ void IMMKalmanFilter::predict(const Vector& u)
     m_data.P_prior = P_prior;
 }
 
-void IMMKalmanFilter::update(const Vector& z, const Matrix& R)
+void IMMExtendedKalmanFilter::update(const Vector &z, const Matrix &R)
 {
-    
     const Matrix& I = createUnityMatrix(z.size());
-    const Matrix& H = m_data.H;
     const Matrix& P = m_data.P_prior;
     const Vector& x = m_data.x_prior;
+    // Use a function pointer since we need to linearize the state via the jacobi matrix
+    const Vector& H = m_HJacobian_fcnPtr(x);
     Matrix& P_post  = m_data.P_post;
     Vector& x_post  = m_data.x_post;
     
@@ -42,13 +41,15 @@ void IMMKalmanFilter::update(const Vector& z, const Matrix& R)
         const Matrix& R = m_data.R;
     }
     
+    // Use a function pointer since we need to move the state into the measurement space from external
+    const Vector& Hx = m_H_fcnPtr(x);
     // y = z - Hx
-    const Vector& y = z - H*x;
+    const Vector& y = z - Hx;
     // S = HPH' + R
     const Matrix& S = H*P*H.transpose() + R;
     // K = PH'inv(S)
     const Matrix& K = (P*H.transpose())*S.inverse();
-
+    
     // x = x + Ky
     x_post = x + K*y;
     // P = (I-KH)P(I-KH)' + KRK'
