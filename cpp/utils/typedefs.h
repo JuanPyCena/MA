@@ -9,6 +9,7 @@
 #include <memory>
 
 typedef Eigen::MatrixXd Matrix;
+typedef Eigen::Matrix<double, 6, 6> Matrix6d;
 typedef Eigen::VectorXd Vector;
 
 const Vector DEFAULT_VECTOR = Vector();

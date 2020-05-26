@@ -13,8 +13,8 @@ public:
     explicit IMMExtendedKalmanFilter(const Vector &initialState, const Matrix &transitionsMatrix,
                                      const Matrix &covarianceMatrix, const Matrix &measurementMatrix,
                                      const Matrix &processNoise, const Matrix &stateUncertainty,
-                                     const Matrix &controlInputMatrix, Matrix &(*expand_matrix_fnc_ptr)(const Matrix&),
-                                     Vector &(*expand_vector_fnc_ptr)(const Vector&),
+                                     const Matrix &controlInputMatrix, const Matrix &(*expand_matrix_fnc_ptr)(const Matrix&),
+                                     const Vector &(*expand_vector_fnc_ptr)(const Vector&),
                                      const Vector &(*H_fcnPtr)(const Vector&),
                                      const Vector &(*HJacobian_fcnPtr)(const Vector&))
                                      : m_H_fcnPtr(H_fcnPtr), m_HJacobian_fcnPtr(HJacobian_fcnPtr),

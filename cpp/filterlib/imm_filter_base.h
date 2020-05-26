@@ -39,8 +39,8 @@ class IMMFilterBase
 public:
     explicit IMMFilterBase(const Vector &initial_state, const Matrix &transitions_matrix, const Matrix &covariance_matrix,
                            const Matrix &measurement_matrix, const Matrix &process_noise, const Matrix &state_uncertainty,
-                           const Matrix &control_input_matrix, Matrix &(*expand_matrix_fnc_ptr)(const Matrix&),
-                           Vector &(*expand_vector_fnc_ptr)(const Vector&))
+                           const Matrix &control_input_matrix, const Matrix &(*expand_matrix_fnc_ptr)(const Matrix&),
+                           const Vector &(*expand_vector_fnc_ptr)(const Vector&))
      {
         m_data.x                = initial_state;
         m_data.x_prior          = DEFAULT_VECTOR;
@@ -98,15 +98,15 @@ protected:
         return m;
     }
     
-    Vector &(*m_expand_vector_fcn_ptr)(const Vector&);
-    Matrix &(*m_expand_matrix_fcn_ptr)(const Matrix&);
+    const Vector &(*m_expand_vector_fcn_ptr)(const Vector&);
+    const Matrix &(*m_expand_matrix_fcn_ptr)(const Matrix&);
 
 public:
     // Accessors
-    DEFINE_ACCESSORS_REF(Data, FilterData, m_data)
-    DEFINE_ACCESSORS_REF(PreviousData, FilterData, m_previous_data)
-    Vector &expandVector(const Vector& x) { return m_expand_vector_fcn_ptr(x); }
-    Matrix &expandMatrix(const Matrix& M) { return m_expand_matrix_fcn_ptr(M); }
+    DEFINE_ACCESSORS_VAL(Data, FilterData, m_data)
+    DEFINE_ACCESSORS_VAL(PreviousData, FilterData, m_previous_data)
+    const Vector &expandVector(const Vector& x) { return m_expand_vector_fcn_ptr(x); }
+    const Matrix &expandMatrix(const Matrix& M) { return m_expand_matrix_fcn_ptr(M); }
     
     // Pure  virtual functions for filter prediction and update
     virtual void predict(const Vector& u=DEFAULT_VECTOR) = 0;
@@ -135,9 +135,6 @@ public:
        }
        return likelihood;
     }
-    
-    // Override "->" operator to directly access the current filter data, quality of life accessor
-    FilterData &operator->() { return m_data; }
 };
 
 #endif //CPP_IMM_FILTER_BASE_H
