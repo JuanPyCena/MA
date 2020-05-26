@@ -2,6 +2,7 @@
 
 int main()
 {
-    IMMEstimator imm = IMMEstimator();
+    Config cfg();
+    IMMEstimator imm();
     return 0;
 }
