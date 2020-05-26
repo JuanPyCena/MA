@@ -30,9 +30,10 @@ void IMMKalmanFilter::predict(const Vector& u)
     m_data.P_prior = P_prior;
 }
 
+//--------------------------------------------------------------------------
+
 void IMMKalmanFilter::update(const Vector& z, const Matrix& R)
 {
-    
     const Matrix& I = createUnityMatrix(z.size());
     const Matrix& H = m_data.H;
     const Matrix& P = m_data.P_prior;
@@ -62,6 +63,6 @@ void IMMKalmanFilter::update(const Vector& z, const Matrix& R)
     m_data.x_post = x_post;
     m_data.P      = P_post;
     m_data.P_post = P_post;
-    m_data.error  = y;
-    m_data.S      = S;
+    m_data.error  = expandVector(y);
+    m_data.S      = expandMatrix(S);
 }

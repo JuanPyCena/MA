@@ -30,13 +30,14 @@ void IMMExtendedKalmanFilter::predict(const Vector &u)
     m_data.P_prior = P_prior;
 }
 
+//--------------------------------------------------------------------------
+
 void IMMExtendedKalmanFilter::update(const Vector &z, const Matrix &R)
 {
     const Matrix& I = createUnityMatrix(z.size());
     const Matrix& P = m_data.P_prior;
     const Vector& x = m_data.x_prior;
-    // Use a function pointer since we need to linearize the state via the jacobi matrix
-    const Vector& H = m_HJacobian_fcnPtr(x);
+    const Vector& H = HJacobian(x);
     Matrix& P_post  = m_data.P_post;
     Vector& x_post  = m_data.x_post;
     
@@ -44,10 +45,8 @@ void IMMExtendedKalmanFilter::update(const Vector &z, const Matrix &R)
         const Matrix& R = m_data.R;
     }
     
-    // Use a function pointer since we need to move the state into the measurement space from external
-    const Vector& Hx = m_H_fcnPtr(x);
     // y = z - Hx
-    const Vector& y = z - Hx;
+    const Vector& y = z - Hx(x);
     // S = HPH' + R
     const Matrix& S = H*P*H.transpose() + R;
     // K = PH'inv(S)
@@ -64,6 +63,6 @@ void IMMExtendedKalmanFilter::update(const Vector &z, const Matrix &R)
     m_data.x_post = x_post;
     m_data.P      = P_post;
     m_data.P_post = P_post;
-    m_data.error  = y;
-    m_data.S      = S;
+    m_data.error  = expandVector(y);
+    m_data.S      = expandMatrix(S);
 }

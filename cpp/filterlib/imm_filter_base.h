@@ -39,25 +39,30 @@ public:
     double logpdf(const Vector &x) const { return log(pdf(x)); }
 };
 
+//--------------------------------------------------------------------------
+
 class IMMFilterBase
 {
 public:
     IMMFilterBase(const Vector &initial_state, const Matrix &transitions_matrix, const Matrix &covariance_matrix, const Matrix &measurement_matrix,
-                  const Matrix &process_noise, const Matrix &state_uncertainty, const Matrix &control_input_matrix)
+                  const Matrix &process_noise, const Matrix &state_uncertainty, const Matrix &control_input_matrix,
+                  const Matrix &(*expand_matrix_fnc_ptr)(const Matrix&), const Vector &(*expand_vector_fnc_ptr)(const Vector&))
      {
-        m_data.x       = initial_state;
-        m_data.x_prior = DEFAULT_VECTOR;
-        m_data.x_post  = DEFAULT_VECTOR;
-        m_data.F       = transitions_matrix;
-        m_data.P       = covariance_matrix;
-        m_data.P_prior = DEFAULT_MATRIX;
-        m_data.P_post  = DEFAULT_MATRIX;
-        m_data.H       = measurement_matrix;
-        m_data.Q       = process_noise;
-        m_data.R       = state_uncertainty;
-        m_data.B       = control_input_matrix;
-        m_data.S       = DEFAULT_MATRIX;
-        m_data.error   = DEFAULT_VECTOR;
+        m_data.x                = initial_state;
+        m_data.x_prior          = DEFAULT_VECTOR;
+        m_data.x_post           = DEFAULT_VECTOR;
+        m_data.F                = transitions_matrix;
+        m_data.P                = covariance_matrix;
+        m_data.P_prior          = DEFAULT_MATRIX;
+        m_data.P_post           = DEFAULT_MATRIX;
+        m_data.H                = measurement_matrix;
+        m_data.Q                = process_noise;
+        m_data.R                = state_uncertainty;
+        m_data.B                = control_input_matrix;
+        m_data.S                = DEFAULT_MATRIX;
+        m_data.error            = DEFAULT_VECTOR;
+        m_expand_matrix_fcn_ptr = expand_matrix_fnc_ptr;
+        m_expand_vector_fcn_ptr = expand_vector_fnc_ptr;
         
         // Initialize previous data with current data, avoid having issue in starting phase
         m_previous_data = m_data;
@@ -98,11 +103,16 @@ protected:
             }
         return m;
     }
+    
+    const Vector &(*m_expand_vector_fcn_ptr)(const Vector&);
+    const Matrix &(*m_expand_matrix_fcn_ptr)(const Matrix&);
 
 public:
     // Accessors
     DEFINE_ACCESSORS_REF(Data, FilterData, m_data)
     DEFINE_ACCESSORS_REF(PreviousData, FilterData, m_previous_data)
+    const Vector &expandVector(const Vector& x) { return m_expand_vector_fcn_ptr(x); }
+    const Matrix &expandMatrix(const Matrix& M) { return m_expand_matrix_fcn_ptr(M); }
     
     // Pure  virtual functions for filter prediction and update
     virtual void predict(const Vector& u=DEFAULT_VECTOR) = 0;
@@ -132,7 +142,7 @@ public:
        return likelihood;
     }
     
-    // Override "->" operator to directly acces the current filter data, quality of life accessor
+    // Override "->" operator to directly access the current filter data, quality of life accessor
     FilterData &operator->() { return m_data; }
 };
 
