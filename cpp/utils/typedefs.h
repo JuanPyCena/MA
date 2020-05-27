@@ -20,6 +20,8 @@ enum FilterType {
     ExtendedKalmanFilter
 };
 
+static int REQUESTED_SIZE = 6;
+
 // Template function usufull for cleaning up std::list and std::vector
 template<typename Container>
 void cleanup_unique_ptr(Container& c) { while(!c.empty()) c.back().reset(), c.pop_back(); }

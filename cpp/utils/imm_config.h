@@ -36,6 +36,7 @@ class IMMConfig {
 public:
     IMMConfig();
     virtual ~IMMConfig() = default;
+    Matrix createUnityMatrix(int size);
     
     DEFINE_GET(FilterType, std::list<FilterType>, m_filter_types)
     DEFINE_GET(ModeProbabilities, Vector, m_mode_probabilities)
@@ -60,6 +61,5 @@ private:
     
     void readKalmanFilter();
     void readExtendedKalmanFilter();
-    Matrix createUnityMatrix(int size);
 };
 #endif //CPP_IMM_CONFIG_H

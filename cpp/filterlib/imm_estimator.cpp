@@ -6,8 +6,6 @@
 #include "imm_kalman_filter.h"
 #include "imm_extended_kalman_filter.h"
 
-static int REQUESTED_SIZE = 6;
-
 IMMEstimator::IMMEstimator()
 {
     m_imm_config               = Config::instance();
@@ -18,7 +16,7 @@ IMMEstimator::IMMEstimator()
     m_mode_probabilities_matrix = Matrix::Zero(m_markov_transition_matrix.rows(), m_markov_transition_matrix.cols());
 
     // Initialize IMM Subfilters
-    initializeIMM();
+    initializeSubfilters();
     
     // Perform initial probability calculation and set IMM state
     calculateModeProbabilityMatrix();
@@ -35,7 +33,7 @@ IMMEstimator::~IMMEstimator()
 
 //--------------------------------------------------------------------------
 
-void IMMEstimator::initializeIMM()
+void IMMEstimator::initializeSubfilters()
 {
     for (const auto& filter_type : m_filter_types)
     {
@@ -50,27 +48,20 @@ void IMMEstimator::initializeIMM()
                 Matrix H = config.m_measurement_control_matrix;
                 Matrix R = config.m_measurement_uncertainty_matrix;
                 Vector initialState = Vector::Zero(F.rows(), 1);
-                std::unique_ptr<IMMKalmanFilter> filter
-                    = std::make_unique<IMMKalmanFilter>(initialState, F, P, H, Q, R, B,
-                                                       &IMMEstimator::expandMatrix, &IMMEstimator::expandVector);
-                m_filters.push_back(filter);
+                m_filters.push_back(std::make_unique<IMMKalmanFilter>(initialState, F, P, H, Q, R, B));
             }
             case ExtendedKalmanFilter:
             {
                 SubFilterConfig config = m_imm_config.getFilterConfigs()[ExtendedKalmanFilter];
                 Matrix F = config.m_transition_matrix;
                 Matrix P = config.m_covariance_matrix;
-                Matrix J = config.m_transition_matrix; // TODO: figure out how to use inheritance correctly here
+                Matrix J = m_imm_config.createUnityMatrix(F.rows()); // TODO: figure out how to use inheritance correctly here
                 Matrix Q = config.m_process_noise_matrix;
                 Matrix B = config.m_input_control_matrix;
                 Matrix H = config.m_measurement_control_matrix;
                 Matrix R = config.m_measurement_uncertainty_matrix;
                 Vector initialState = Vector::Zero(F.rows(), 1);
-                std::unique_ptr<IMMExtendedKalmanFilter> filter
-                        = std::make_unique<IMMExtendedKalmanFilter>(initialState, F, P, H, Q, R, B,
-                                                            &IMMEstimator::expandMatrix, &IMMEstimator::expandVector,
-                                                            &IMMEstimator::expandVector, &IMMEstimator::expandVector);
-                m_filters.push_back(filter);
+                m_filters.push_back(std::make_unique<IMMExtendedKalmanFilter>(initialState, F, P, H, Q, R, B, J));
             }
             assert(("Invalid Filtertype!", false));
         }
@@ -273,26 +264,6 @@ Matrix IMMEstimator::expandCovariance(const Matrix &M)
     return new_M;
 }
 
-//--------------------------------------------------------------------------
-
-Matrix IMMEstimator::expandInnovation(const Matrix &M)
-{
-    Matrix new_M = M;
-    auto requested_cols = REQUESTED_SIZE;
-    auto requested_rows = REQUESTED_SIZE;
-    auto matrix_cols = M.cols();
-    auto matrix_rows = M.rows();
-    
-    if (requested_cols == matrix_cols && requested_rows == matrix_rows)
-        return new_M;
-    
-    Matrix ones_M = Matrix::Ones(requested_rows ,requested_cols);
-    for (int i = 0; i < matrix_rows; i++)
-        for (int j = 0; j < matrix_cols; j++)
-            ones_M(i,j) = new_M.coeff(i, j);
-    new_M = m_imm_config.getExpansionMatrixInnovation() * ones_M * m_imm_config.getExpansionMatrixInnovation().transpose();
-    return new_M;
-}
 
 //--------------------------------------------------------------------------
 
@@ -317,4 +288,3 @@ Matrix IMMEstimator::shrinkMatrix(const Matrix &M, int dim)
     new_M = m_imm_config.getShrinkingMatrix() * M * m_imm_config.getShrinkingMatrix().transpose();
     return new_M;
 }
-

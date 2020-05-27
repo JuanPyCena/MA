@@ -7,8 +7,11 @@
 
 #include "utils/makros.h"
 #include "utils/typedefs.h"
+#include "utils/imm_config.h"
 
 #include <string>
+
+typedef IMMConfig Config;
 
 class Mvn {
 // Based on the implementation in: http://blog.sarantop.com/notes/mvn
@@ -33,14 +36,13 @@ public:
 };
 
 //--------------------------------------------------------------------------
-
+class IMMEstimator;
 class IMMFilterBase
 {
 public:
     explicit IMMFilterBase(const Vector &initial_state, const Matrix &transitions_matrix, const Matrix &covariance_matrix,
                            const Matrix &measurement_matrix, const Matrix &process_noise, const Matrix &state_uncertainty,
-                           const Matrix &control_input_matrix, const Matrix &(*expand_matrix_fnc_ptr)(const Matrix&),
-                           const Vector &(*expand_vector_fnc_ptr)(const Vector&))
+                           const Matrix &control_input_matrix)
      {
         m_data.x                = initial_state;
         m_data.x_prior          = DEFAULT_VECTOR;
@@ -55,8 +57,6 @@ public:
         m_data.B                = control_input_matrix;
         m_data.S                = DEFAULT_MATRIX;
         m_data.error            = DEFAULT_VECTOR;
-        m_expand_matrix_fcn_ptr = expand_matrix_fnc_ptr;
-        m_expand_vector_fcn_ptr = expand_vector_fnc_ptr;
         
         // Initialize previous data with current data, avoid having issue in starting phase
         m_previous_data = m_data;
@@ -83,6 +83,8 @@ protected:
         Vector error; // Error of the prediction, , used for calculation of likelihood
     } m_data, m_previous_data;  // data containter for current calculation and previous calculation
     
+    //--------------------------------------------------------------------------
+    
     // This has to be done manually since we don't know the size of the matrices at compile time
     static Matrix createUnityMatrix(int size)
     {
@@ -98,15 +100,51 @@ protected:
         return m;
     }
     
-    const Vector &(*m_expand_vector_fcn_ptr)(const Vector&);
-    const Matrix &(*m_expand_matrix_fcn_ptr)(const Matrix&);
+    //--------------------------------------------------------------------------
+    
+    Matrix expandInnovation(const Matrix &M)
+    {
+        Matrix new_M = M;
+        auto requested_cols = REQUESTED_SIZE;
+        auto requested_rows = REQUESTED_SIZE;
+        auto matrix_cols = M.cols();
+        auto matrix_rows = M.rows();
+        
+        if (requested_cols == matrix_cols && requested_rows == matrix_rows)
+            return new_M;
+        
+        Matrix ones_M = Matrix::Ones(requested_rows ,requested_cols);
+        for (int i = 0; i < matrix_rows; i++)
+            for (int j = 0; j < matrix_cols; j++)
+                ones_M(i,j) = new_M.coeff(i, j);
+        new_M = Config::instance().getExpansionMatrixInnovation() * ones_M * Config::instance().getExpansionMatrixInnovation().transpose();
+        return new_M;
+    }
+    
+    //--------------------------------------------------------------------------
+    
+    Vector expandErrorVector(const Vector &x)
+    {
+        Vector new_x = x;
+        auto requested_size = REQUESTED_SIZE;
+        auto vector_size = x.size();
+        if (vector_size == requested_size)
+            return new_x;
+        
+        // Fill with one until the requested size has been reached.
+        for (int i = vector_size; i < requested_size; i++)
+            new_x << 1.0;
+        
+        new_x = Config::instance().getExpansionMatrix() * new_x;
+        return new_x;
+    }
 
 public:
     // Accessors
     DEFINE_ACCESSORS_VAL(Data, FilterData, m_data)
     DEFINE_ACCESSORS_VAL(PreviousData, FilterData, m_previous_data)
-    const Vector &expandVector(const Vector& x) { return m_expand_vector_fcn_ptr(x); }
-    const Matrix &expandMatrix(const Matrix& M) { return m_expand_matrix_fcn_ptr(M); }
+    Vector expandVector(const Vector& x) { return expandErrorVector(x); }
+    Matrix expandMatrix(const Matrix& M) { return expandInnovation(M); }
     
     // Pure  virtual functions for filter prediction and update
     virtual void predict(const Vector& u=DEFAULT_VECTOR) = 0;
@@ -115,7 +153,9 @@ public:
     // Pure virtual function which gives a general information about the Filter, useful for logging
     // Returns a string giving Information about which Filter is currently used
     virtual std::string getFilterInfo() = 0;
-
+    
+    //--------------------------------------------------------------------------
+    
     // Likelihood functions which should be the same for each filter
     double getLogLikelihood() const {
         const Vector mean  = DEFAULT_VECTOR;
@@ -124,6 +164,8 @@ public:
         Mvn mvn(mean, sigma);
         return mvn.logpdf(y);
     }
+    
+    //--------------------------------------------------------------------------
     
     double getLikelihood() const {
        double likelihood = exp(getLogLikelihood());

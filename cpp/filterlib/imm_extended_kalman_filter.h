@@ -6,28 +6,20 @@
 #define CPP_IMM_EXTENDED_KALMAN_FILTER_H
 
 #include "imm_filter_base.h"
-
 class IMMExtendedKalmanFilter : public IMMFilterBase
 {
 public:
-    explicit IMMExtendedKalmanFilter(const Vector &initialState, const Matrix &transitionsMatrix,
-                                     const Matrix &covarianceMatrix, const Matrix &measurementMatrix,
-                                     const Matrix &processNoise, const Matrix &stateUncertainty,
-                                     const Matrix &controlInputMatrix, const Matrix &(*expand_matrix_fnc_ptr)(const Matrix&),
-                                     const Vector &(*expand_vector_fnc_ptr)(const Vector&),
-                                     const Vector &(*H_fcnPtr)(const Vector&),
-                                     const Vector &(*HJacobian_fcnPtr)(const Vector&))
-                                     : m_H_fcnPtr(H_fcnPtr), m_HJacobian_fcnPtr(HJacobian_fcnPtr),
-                                     IMMFilterBase(initialState,
-                                                   transitionsMatrix,
-                                                   covarianceMatrix,
-                                                   measurementMatrix,
-                                                   processNoise,
-                                                   stateUncertainty,
-                                                   controlInputMatrix,
-                                                   expand_matrix_fnc_ptr,
-                                                   expand_vector_fnc_ptr) {}
-                                            
+    explicit IMMExtendedKalmanFilter(const Vector &initial_state, const Matrix &transitions_matrix,
+                                     const Matrix &covariance_matrix, const Matrix &measurement_matrix,
+                                     const Matrix &process_noise, const Matrix &state_uncertainty,
+                                     const Matrix &control_input_matrix, const Matrix &jacobi_matrix)
+                                     : IMMFilterBase(initial_state,
+                                                     transitions_matrix,
+                                                     covariance_matrix,
+                                                     measurement_matrix,
+                                                     process_noise,
+                                                     state_uncertainty,
+                                                     control_input_matrix), m_jacobi_matrix(jacobi_matrix) {}
     virtual ~IMMExtendedKalmanFilter() = default;
     
     // Implementation of the prediction step of the Extended Kalman Filter
@@ -37,15 +29,13 @@ public:
     // Returns a string giving Information about which Filter is currently used
     std::string getFilterInfo() override { return std::string("IMM Extended Kalman Filter"); }
     
-    // Use a function pointer since we need to move the state into the measurement space from external
-    const Vector &Hx(const Vector& x) { return m_H_fcnPtr(x); }
-    // Use a function pointer since we need to linearize the state via the jacobi matrix
-    const Vector &HJacobian(const Vector& x) { return m_HJacobian_fcnPtr(x); }
 private:
-    // Function pointer for moving state into measurement space
-    const Vector &(*m_H_fcnPtr)(const Vector&);
-    // Function pointer for linearization of the state vector via Jacobian matrix
-    const Vector &(*m_HJacobian_fcnPtr)(const Vector&);
+    const Matrix& m_jacobi_matrix;
+    
+    // Use a function pointer since we need to move the state into the measurement space from external
+    Vector Hx(const Vector& x) { return x; }// Todo: For now assume we are in the same space}
+    // Use a function pointer since we need to linearize the state via the jacobi matrix
+    Vector HJacobian(const Vector& x) { return m_jacobi_matrix * x; } // Todo: For now multiply with jacobi matrix
 };
 
 

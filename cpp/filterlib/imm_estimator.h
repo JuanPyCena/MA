@@ -6,10 +6,7 @@
 #define CPP_IMM_ESTIMATOR_H
 
 #include "imm_filter_base.h"
-#include "utils/imm_config.h"
 #include <vector>
-
-typedef IMMConfig Config;
 
 class IMMEstimator
 {
@@ -33,7 +30,7 @@ class IMMEstimator
     
     
     // Container to hold the subfilters for the IMM
-    std::list<std::unique_ptr<IMMFilterBase>> m_filters;
+    std::list<std::unique_ptr<IMMFilterBase> > m_filters;
     
     // Constant useful for probability calculation
     Vector m_c;
@@ -44,8 +41,9 @@ class IMMEstimator
     // imm_config for the IMM, also holds the configuration for the subfilters
     Config m_imm_config;
 
+    
     // Used in constructor to initialize the subfilters according to the given m_filter_type
-    void initializeIMM();
+    void initializeSubfilters();
     // Compute the mixing probability for each filter.
     void calculateModeProbabilityMatrix();
     // Computes the IMM's mixed state estimate from each filter using the mode probability to weight the estimates.
