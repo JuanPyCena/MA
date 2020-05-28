@@ -8,6 +8,7 @@
 #include "utils/makros.h"
 #include "utils/typedefs.h"
 #include "utils/imm_config.h"
+#define M_PI 3.14159265358979323846  /* pi needs to be defined manually since VS compiler somehow gets rid of the M_PI constant of cmath*/
 
 
 typedef IMMConfig Config;

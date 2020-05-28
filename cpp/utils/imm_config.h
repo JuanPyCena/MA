@@ -9,7 +9,7 @@
 #include <map>
 
 // Include libconfig to read config
-#include <libconfig/lib/libconfig.h++>
+#include <libconfig.h++>
 
 class SubFilterConfig
 {

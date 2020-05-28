@@ -3,6 +3,6 @@
 int main()
 {
     Config cfg;
-    IMMEstimator imm();
+    IMMEstimator imm;
     return 0;
 }
