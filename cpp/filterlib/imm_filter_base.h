@@ -9,7 +9,6 @@
 #include "utils/typedefs.h"
 #include "utils/imm_config.h"
 
-#include <string>
 
 typedef IMMConfig Config;
 

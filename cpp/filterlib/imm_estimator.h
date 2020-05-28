@@ -38,9 +38,6 @@ class IMMEstimator
     std::vector<Vector> m_mixed_states;
     std::vector<Matrix> m_mixed_covariances;
 
-    // imm_config for the IMM, also holds the configuration for the subfilters
-    Config m_imm_config;
-
     
     // Used in constructor to initialize the subfilters according to the given m_filter_type
     void initializeSubfilters();

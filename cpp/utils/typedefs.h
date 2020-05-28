@@ -7,6 +7,9 @@
 
 #include <Eigen/Dense>
 #include <memory>
+#include <string>
+#include <list>
+#include <vector>
 
 typedef Eigen::MatrixXd Matrix;
 typedef Eigen::Matrix<double, 6, 6> Matrix6d;

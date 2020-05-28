@@ -8,10 +8,9 @@
 
 IMMEstimator::IMMEstimator()
 {
-    m_imm_config               = Config::instance();
-    m_mode_probabilities       = m_imm_config.getModeProbabilities();
-    m_markov_transition_matrix = m_imm_config.getMarkovTransitionMatrix();
-    m_filter_types             = m_imm_config.getFilterType();
+    m_mode_probabilities       = IMMConfig::instance().getModeProbabilities();
+    m_markov_transition_matrix = IMMConfig::instance().getMarkovTransitionMatrix();
+    m_filter_types             = IMMConfig::instance().getFilterType();
     
     m_mode_probabilities_matrix = Matrix::Zero(m_markov_transition_matrix.rows(), m_markov_transition_matrix.cols());
 
@@ -40,7 +39,7 @@ void IMMEstimator::initializeSubfilters()
         switch (filter_type) {
             case KalmanFilter:
             {
-                SubFilterConfig config = m_imm_config.getFilterConfigs()[KalmanFilter];
+                SubFilterConfig config = IMMConfig::instance().getFilterConfigs()[KalmanFilter];
                 Matrix F = config.m_transition_matrix;
                 Matrix P = config.m_covariance_matrix;
                 Matrix Q = config.m_process_noise_matrix;
@@ -49,21 +48,24 @@ void IMMEstimator::initializeSubfilters()
                 Matrix R = config.m_measurement_uncertainty_matrix;
                 Vector initialState = Vector::Zero(F.rows(), 1);
                 m_filters.push_back(std::make_unique<IMMKalmanFilter>(initialState, F, P, H, Q, R, B));
+                break;
             }
             case ExtendedKalmanFilter:
             {
-                SubFilterConfig config = m_imm_config.getFilterConfigs()[ExtendedKalmanFilter];
+                SubFilterConfig config = IMMConfig::instance().getFilterConfigs()[ExtendedKalmanFilter];
                 Matrix F = config.m_transition_matrix;
                 Matrix P = config.m_covariance_matrix;
-                Matrix J = m_imm_config.createUnityMatrix(F.rows()); // TODO: figure out how to use inheritance correctly here
+                Matrix J = IMMConfig::instance().createUnityMatrix(F.rows()); // TODO: figure out how to use inheritance correctly here
                 Matrix Q = config.m_process_noise_matrix;
                 Matrix B = config.m_input_control_matrix;
                 Matrix H = config.m_measurement_control_matrix;
                 Matrix R = config.m_measurement_uncertainty_matrix;
                 Vector initialState = Vector::Zero(F.rows(), 1);
                 m_filters.push_back(std::make_unique<IMMExtendedKalmanFilter>(initialState, F, P, H, Q, R, B, J));
+                break;
             }
-            assert(("Invalid Filtertype!", false));
+            default:
+                assert(("Invalid Filtertype!", false));
         }
     }
 }
@@ -218,7 +220,7 @@ Vector IMMEstimator::expandVector(const Vector &x)
     for (int i = vector_size; i < requested_size; i++)
         new_x << 1.0;
     
-    new_x = m_imm_config.getExpansionMatrix() * new_x;
+    new_x = IMMConfig::instance().getExpansionMatrix() * new_x;
     return new_x;
 }
 
@@ -239,7 +241,7 @@ Matrix IMMEstimator::expandMatrix(const Matrix &M)
     for (int i = 0; i < matrix_rows; i++)
         for (int j = 0; j < matrix_cols; j++)
             ones_M(i,j) = new_M.coeff(i, j);
-    new_M = m_imm_config.getExpansionMatrix() * ones_M * m_imm_config.getExpansionMatrix().transpose();
+    new_M = IMMConfig::instance().getExpansionMatrix() * ones_M * IMMConfig::instance().getExpansionMatrix().transpose();
     return new_M;
 }
 
@@ -260,7 +262,7 @@ Matrix IMMEstimator::expandCovariance(const Matrix &M)
     for (int i = 0; i < matrix_rows; i++)
         for (int j = 0; j < matrix_cols; j++)
             ones_M(i,j) = new_M.coeff(i, j);
-    new_M = m_imm_config.getExpansionMatrixCovariance() * ones_M * m_imm_config.getExpansionMatrixCovariance().transpose();
+    new_M = IMMConfig::instance().getExpansionMatrixCovariance() * ones_M * IMMConfig::instance().getExpansionMatrixCovariance().transpose();
     return new_M;
 }
 
@@ -273,7 +275,7 @@ Vector IMMEstimator::shrinkVector(const Vector &x, int dim)
     if (dim == REQUESTED_SIZE)
         return new_x;
     
-    new_x = m_imm_config.getShrinkingMatrix() * x;
+    new_x = IMMConfig::instance().getShrinkingMatrix() * x;
     return new_x;
 }
 
@@ -285,6 +287,6 @@ Matrix IMMEstimator::shrinkMatrix(const Matrix &M, int dim)
     if (dim == REQUESTED_SIZE)
         return new_M;
     
-    new_M = m_imm_config.getShrinkingMatrix() * M * m_imm_config.getShrinkingMatrix().transpose();
+    new_M = IMMConfig::instance().getShrinkingMatrix() * M * IMMConfig::instance().getShrinkingMatrix().transpose();
     return new_M;
 }

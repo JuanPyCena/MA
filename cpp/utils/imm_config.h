@@ -7,10 +7,13 @@
 #include "utils/makros.h"
 #include "utils/typedefs.h"
 #include <map>
-#include <list>
 
-struct SubFilterConfig
+// Include libconfig to read config
+#include <libconfig/lib/libconfig.h++>
+
+class SubFilterConfig
 {
+public:
     Matrix m_transition_matrix;
     Matrix m_covariance_matrix;
     Matrix m_measurement_control_matrix;
@@ -19,13 +22,15 @@ struct SubFilterConfig
     Matrix m_measurement_uncertainty_matrix;
 };
 
-struct KFConfig : SubFilterConfig
+class KFConfig : public SubFilterConfig
 {
+public:
     const std::string m_filter_cfg_info = "KFConfig";
 };
 
-struct EKFConfig : SubFilterConfig
+class EKFConfig : public SubFilterConfig
 {
+public:
     const std::string m_filter_cfg_info = "EKFConfig";
     Matrix m_jacobi_matrix;
 };
@@ -35,10 +40,13 @@ typedef std::map<FilterType, SubFilterConfig> FilterDict;
 class IMMConfig {
 public:
     IMMConfig();
-    virtual ~IMMConfig() = default;
+    ~IMMConfig() {};
     Matrix createUnityMatrix(int size);
     
+    DEFINE_ACCESSORS_REF(ConfigFile, std::string, m_config_file)
     DEFINE_GET(FilterType, std::list<FilterType>, m_filter_types)
+    DEFINE_GET(FilterDefinitions, std::list<std::string>, m_filter_definitions)
+    DEFINE_GET(StateDefinition, std::list<std::string>, m_state_definition)
     DEFINE_GET(ModeProbabilities, Vector, m_mode_probabilities)
     DEFINE_GET(MarkovTransitionMatrix, Matrix, m_markov_transition_matrix)
     DEFINE_GET(ExpansionMatrix, Matrix, m_expansion_matrix)
@@ -49,7 +57,12 @@ public:
     DEF_SINGLETON(IMMConfig)
 
 private:
+    std::string m_config_file;
+    libconfig::Config m_cfg;
+    std::map<std::string, FilterType> m_enum_map;
     std::list<FilterType> m_filter_types;
+    std::list<std::string> m_filter_definitions;
+    std::list<std::string> m_state_definition;
     Vector m_mode_probabilities;
     Matrix m_markov_transition_matrix;
     Matrix m_expansion_matrix;
@@ -59,6 +72,8 @@ private:
     
     FilterDict m_filters;
     
+    void readIMM();
+    void readSubFilterConfigs();
     void readKalmanFilter();
     void readExtendedKalmanFilter();
 };
