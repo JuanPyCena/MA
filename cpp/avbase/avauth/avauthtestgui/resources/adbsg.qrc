@@ -1,5 +1,0 @@
-<RCC>
-  <qresource prefix="resources">
-    <file alias="ADBSafegateLogo">images/adbsafegate.png</file>
-  </qresource>
-</RCC>
