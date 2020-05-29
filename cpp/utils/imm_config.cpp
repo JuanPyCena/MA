@@ -14,27 +14,12 @@ IMMConfig::IMMConfig()
     m_mode_probabilities               = DEFAULT_VECTOR;
     m_markov_transition_matrix         = DEFAULT_MATRIX;
     
-    m_cfg.readString(m_config_file);
     
     readIMM();
 }
 
 void IMMConfig::readIMM()
 {
-    const libconfig::Setting& imm_section = m_cfg.getRoot()["IMM"];
-
-    // Get general singular values
-    float a, b, sigma;
-    imm_section.lookupValue("a", a);
-    imm_section.lookupValue("b", b);
-    imm_section.lookupValue("sigma_a_sq", sigma);
-
-    const libconfig::Setting &state_vector_settings = imm_section.lookup("state_vector");
-    for (auto& vector_elem : state_vector_settings)
-    {
-        m_state_definition.push_back(vector_elem);
-    }
-
 }
 
 void IMMConfig::readSubFilterConfigs()
