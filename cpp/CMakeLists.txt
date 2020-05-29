@@ -3,7 +3,6 @@ project(cpp)
 
 set(CMAKE_CXX_STANDARD 14)
 set(EIGEN3_INCLUDE_DIR "external/Eigen3")
-set(CONFIG_READ_LIB "external/config_read_lib/lightconf")
 
 include_directories(.)
 include_directories(${EIGEN3_INCLUDE_DIR})

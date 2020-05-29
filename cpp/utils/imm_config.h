@@ -8,8 +8,6 @@
 #include "utils/typedefs.h"
 #include <map>
 
-#include <lightconf.hpp>
-
 class SubFilterConfig
 {
 public:
