@@ -8,9 +8,6 @@
 #include "utils/typedefs.h"
 #include <map>
 
-// Include libconfig to read config
-#include <libconfig.h++>
-
 class SubFilterConfig
 {
 public:
@@ -58,7 +55,6 @@ public:
 
 private:
     std::string m_config_file;
-    libconfig::Config m_cfg;
     std::map<std::string, FilterType> m_enum_map;
     std::list<FilterType> m_filter_types;
     std::list<std::string> m_filter_definitions;

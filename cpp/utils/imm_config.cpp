@@ -6,7 +6,7 @@
 
 IMMConfig::IMMConfig()
 {
-    m_config_file                      = std::string("D:\\programming\\clion\\MasterarbeitCPP\\MA\\cpp\\config\\imm_config2_models.cfg");
+    m_config_file                      = std::string("D:\\programming\\clion\\MasterarbeitCPP\\MA\\cpp\\config\\imm_config2_models.js");
     m_enum_map["KalmanFilter"]         = KalmanFilter;
     m_enum_map["ExtendedKalmanFilter"] = ExtendedKalmanFilter;
     m_filter_types                     = std::list<FilterType>();
@@ -14,27 +14,19 @@ IMMConfig::IMMConfig()
     m_mode_probabilities               = DEFAULT_VECTOR;
     m_markov_transition_matrix         = DEFAULT_MATRIX;
     
-    m_cfg.readString(m_config_file);
     
     readIMM();
 }
 
 void IMMConfig::readIMM()
 {
-    const libconfig::Setting& imm_section = m_cfg.getRoot()["IMM"];
-
-    // Get general singular values
-    float a, b, sigma;
-    imm_section.lookupValue("a", a);
-    imm_section.lookupValue("b", b);
-    imm_section.lookupValue("sigma_a_sq", sigma);
-
-    const libconfig::Setting &state_vector_settings = imm_section.lookup("state_vector");
-    for (auto& vector_elem : state_vector_settings)
-    {
-        m_state_definition.push_back(vector_elem);
-    }
-
+    QFile cfg_file;
+    cfg_file.setFileName(m_config_file);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+        assert(("Could not read file!", false));
+    
+    QJsonObject sd = QJsonDocument::fromJson(file.readAll().toUtf8()).object();
+    
 }
 
 void IMMConfig::readSubFilterConfigs()
