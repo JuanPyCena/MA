@@ -40,7 +40,6 @@ public:
     ~IMMConfig() {};
     Matrix createUnityMatrix(int size);
     
-    DEFINE_ACCESSORS_REF(ConfigFile, std::string, m_config_file)
     DEFINE_GET(FilterType, std::list<FilterType>, m_filter_types)
     DEFINE_GET(FilterDefinitions, std::list<std::string>, m_filter_definitions)
     DEFINE_GET(StateDefinition, std::list<std::string>, m_state_definition)
@@ -54,7 +53,6 @@ public:
     DEF_SINGLETON(IMMConfig)
 
 private:
-    std::string m_config_file;
     std::map<std::string, FilterType> m_enum_map;
     std::list<FilterType> m_filter_types;
     std::list<std::string> m_filter_definitions;
