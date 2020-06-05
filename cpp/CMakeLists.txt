@@ -1,25 +1,49 @@
-cmake_minimum_required(VERSION 3.16)
-project(cpp)
+#! --------------------------------------------------------------------------
+#!
+#! Package:   AVCOMMON - AviBit Common Libraries
+#! Copyright: AviBit data processing GmbH, 2001-2010
+#! Author:    Dr. Thomas Leitner, t.leitner@avibit.com
+#!
+#! Module:    AVMSGLIB - AviBit Messaging Library
+#!
+#! --------------------------------------------------------------------------
 
-set(CMAKE_CXX_STANDARD 14)
-set(EIGEN3_INCLUDE_DIR "external/Eigen3")
+include(${AV_BUILD_SYSTEM_DIR}/cmake/CMakeLists_base.txt)
 
-include_directories(.)
-include_directories(${EIGEN3_INCLUDE_DIR})
-include_directories(${LIBCONFIG})
-include_directories(${CONFIG_READ_LIB})
+set(module avimmlib)
 
-add_executable(cpp
-               main.cpp
-               filterlib/imm_kalman_filter.cpp
-               filterlib/imm_kalman_filter.h
-               filterlib/imm_estimator.cpp
-               filterlib/imm_estimator.h
-               filterlib/imm_filter_base.h
-               filterlib/imm_extended_kalman_filter.cpp
-               filterlib/imm_extended_kalman_filter.h
-               utils/imm_config.cpp
-               utils/imm_config.h
-               utils/makros.h
-               utils/typedefs.h
-               )
+#-----------------------------------------------------------------------------
+
+add_subdirectory(unittests)
+
+#-----------------------------------------------------------------------------
+
+set(headers
+        filterlib/avimmestimator.h
+        filterlib/avimmextendedkalmanfilter.h
+        filterlib/avimmfilterbase.h
+        filterlib/avimmkalmanfilter.h
+        utils/avimmconfig.h
+        utils/avimmmakros.h
+        utils/avimmtypedefs.h
+        utils/avimmconfigparser.h
+)
+
+#-----------------------------------------------------------------------------
+
+set(sources
+        filterlib/avimmestimator.cpp
+        filterlib/avimmextendedkalmanfilter.cpp
+        filterlib/avimmkalmanfilter.cpp
+        utils/avimmconfig.cpp
+        )
+
+
+add_avlibrary(${module} ${headers} ${sources})
+target_link_libraries(${module} ${QT5_LIBRARIES})
+target_include_directories(${module} SYSTEM PUBLIC
+        $<BUILD_INTERFACE:${AVCOMMON_SOURCE_DIR}/3rdparty/eigen3>
+        $<INSTALL_INTERFACE:include/avcommon/src5/3rdparty/eigen3>
+        )
+target_link_libraries(${module} ${QT_LIBRARIES} avlib)
+#! eof
