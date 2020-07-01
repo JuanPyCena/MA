@@ -2,8 +2,8 @@
 // Created by felix on 6/3/20.
 //
 
-#ifndef SVN_AVIMMCONFIGPARSER_H
-#define SVN_AVIMMCONFIGPARSER_H
+#ifndef AVIMMCONFIGPARSER_H
+#define AVIMMCONFIGPARSER_H
 
 #include "avimmtypedefs.h"
 #include "exprtk.hpp"
@@ -54,7 +54,6 @@ public:
                 }
                 calculated_matrix(i,j) = expression.value();
             }
-        
         return calculated_matrix;
     }
 
@@ -63,4 +62,4 @@ private:
 };
 
 
-#endif //SVN_AVIMMCONFIGPARSER_H
+#endif //AVIMMCONFIGPARSER_H

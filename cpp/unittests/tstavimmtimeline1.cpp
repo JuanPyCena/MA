@@ -13,22 +13,23 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 /*! \file
-    \brief   Pseudo Main for manual testing
+    \brief  Tests a uniform linear motion with equidistant time intervalls
  */
 
 #include <QObject>
 #include <QTest>
 #include <avunittest.h>
 #include <QApplication>
+#include <numeric>
 
 #include "testhelper/avimmtester.h"
 
-class TstIMMTestMain : public QObject
+class TstIMMTimeLine1 : public QObject
 {
 Q_OBJECT
 
 public:
-    TstIMMTestMain() {}
+    TstIMMTimeLine1() {}
 
 public slots:
     void initTestCase() {};
@@ -57,20 +58,29 @@ private slots:
     void test_IMM_test_main();
 };
 
-///////////////////////////////////////////////////////////////////////////////
+//--------------------------------------------------------------------------
 
-void TstIMMTestMain::test_IMM_test_main()
+void TstIMMTimeLine1::test_IMM_test_main()
 {
     std::cout << "Starting Test" << std::endl;
     AVIMMTester avimm_tester("/home/users/felix/workspace/trunk/svn/avcommon/src5/avimmlib/unittests/test_data/test_data_linear_uniform_motion.csv");
+
+    // Run simulation
     avimm_tester.run_sim();
-    QVector<Vector> results = avimm_tester.getResultingStates();
-    QVector<Vector> errors  = avimm_tester.getErrorToMeasurementData();
     
-    avimm_tester.dump_results("/home/users/felix/workspace/trunk/svn/avcommon/src5/avimmlib/unittests/imm_data/imm_data_test.csv");
+    // Evaluate errors
+    Vector zero(6,1);
+    zero << 0, 0, 0, 0, 0, 0;
+    auto errors_accumulated = std::accumulate(avimm_tester.getErrorToMeasurementData().begin(), avimm_tester.getErrorToMeasurementData().end(), zero);
+    double error_value      = errors_accumulated.sum();
+    
+    QVERIFY(error_value < 1*exp(-9));
+    std::cout << std::endl << "Error value: " << error_value << std::endl;
     
     std::cout << std::endl << "Done" << std::endl;
+
+
 }
 
-AV_QTEST_MAIN(TstIMMTestMain)
-#include "tstimmtestmain.moc"
+AV_QTEST_MAIN(TstIMMTimeLine1)
+#include "tstavimmtimeline1.moc"

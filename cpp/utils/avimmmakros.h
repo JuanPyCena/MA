@@ -2,8 +2,8 @@
 // Created by Felix on 25.05.2020.
 //
 
-#ifndef CPP_MAKROS_H
-#define CPP_MAKROS_H
+#ifndef AVIMMMAKROS_H
+#define AVIMMMAKROS_H
 
 #define DEFINE_ACCESSORS_REF(NAME, TYPE, MEMBER)               \
     const TYPE& get##NAME() const { return MEMBER; };          \
@@ -28,4 +28,4 @@
  private:                                       \
     CLASS( const CLASS& ) = delete;             \
 
-#endif //CPP_MAKROS_H
+#endif //AVIMMMAKROS_H

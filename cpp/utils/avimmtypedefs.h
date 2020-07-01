@@ -2,8 +2,8 @@
 // Created by Felix on 26.05.2020.
 //
 
-#ifndef CPP_TYPEDEFS_H
-#define CPP_TYPEDEFS_H
+#ifndef AVIMMTYPEDEFS_H
+#define AVIMMTYPEDEFS_H
 
 #include <Eigen/Dense>
 #include <memory>
@@ -32,6 +32,6 @@ enum FilterType {
 
 // Template function usufull for cleaning up std::list and std::vector
 template<typename Container>
-void cleanup_unique_ptr(Container& c) { while(!c.empty()) c.back().reset(), c.pop_back(); }
+void cleanup_ptr_container(Container& c) { while(!c.empty()) delete c.back(), c.pop_back(); }
 
-#endif //CPP_TYPEDEFS_H
+#endif //AVIMMTYPEDEFS_H

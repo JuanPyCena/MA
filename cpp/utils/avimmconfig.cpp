@@ -4,10 +4,11 @@
 
 #include "avimmconfig.h"
 
-#define CFGPATH "/home/users/felix/workspace/trunk/svn/avcommon/src5/avimmlib/config/imm_config2_models.cc"
-#define CFGFILE "imm_config2_models"
+#define CFGPATH "/home/users/felix/workspace/trunk/svn/avcommon/src5/avimmlib/config/imm_config2_static_dynamic.cc"
+#define STATICCFG "static_config"
+#define DYNAMICCFG "dynamic_config"
 
-AVIMMConfig::AVIMMConfig(const QString &prefix, AVConfig2Container &config)
+AVIMMStaticSubfilterConfig::AVIMMStaticSubfilterConfig(const QString &prefix, AVConfig2Container &config)
     : AVConfig2(prefix, config)
 {
     registerParameter("transition_matrix", &transition_matrix,
@@ -26,6 +27,10 @@ AVIMMConfig::AVIMMConfig(const QString &prefix, AVConfig2Container &config)
                       "Matrix which defines how much we trust the measurement").
             setSuggestedValue(AVMatrix<QString>());
     
+    registerParameter("covariance_matrix", &covariance_matrix,
+                      "Matrix which defines the covariance matrix").
+            setSuggestedValue(AVMatrix<QString>());
+    
     registerParameter("input_control_matrix", &input_control_matrix,
                       "Matrix which defines how an external input affects the state directly").
             setSuggestedValue(AVMatrix<QString>());
@@ -35,8 +40,33 @@ AVIMMConfig::AVIMMConfig(const QString &prefix, AVConfig2Container &config)
             setSuggestedValue(AVMatrix<QString>());
 }
 
-AVIMMConfigContainer::AVIMMConfigContainer()
-    : AVConfig2(CFGFILE)
+AVIMMDynamicAreaSubConfig::AVIMMDynamicAreaSubConfig(const QString &prefix, AVConfig2Container &config)
+        : AVConfig2(prefix, config)
+{
+    registerParameter("process_noise_matrix", &process_noise_matrix,
+                      "Matrix which defines how much we trust the prediction").
+            setSuggestedValue(AVMatrix<QString>());
+}
+
+AVIMMDynamicAreaConfig::AVIMMDynamicAreaConfig(const QString &prefix, AVConfig2Container &config)
+    : AVConfig2(prefix, config)
+{
+    AVMatrix<float> markov_transition_matrix_helper;
+    registerParameter("markov_transition_matrix", &markov_transition_matrix_helper,
+                      "List which defines the order of the state vector").
+            setSuggestedValue(AVMatrix<float>());
+    
+    registerParameter("sigma", &sigma,
+                      "Float which defines the acceleration variance").
+            setSuggestedValue(1.0);
+    
+    registerSubconfig(m_prefix, &area_sub_configs);
+    
+    markov_transition_matrix = AVIMMStaticConfigContainer::convertAVMatrixFloatToEigenMatrix(markov_transition_matrix_helper);
+}
+
+AVIMMStaticConfigContainer::AVIMMStaticConfigContainer()
+    : AVConfig2(STATICCFG)
 {
     m_enum_map["KalmanFilter"]         = KalmanFilter;
     m_enum_map["ExtendedKalmanFilter"] = ExtendedKalmanFilter;
@@ -57,11 +87,6 @@ AVIMMConfigContainer::AVIMMConfigContainer()
     registerParameter("state_vector", &state_definition,
                       "List which defines the order of the state vector").
             setSuggestedValue(suggested_state_definition);
-    
-    AVMatrix<float> markov_transition_matrix_helper;
-    registerParameter("markov_transition_matrix", &markov_transition_matrix_helper,
-                      "List which defines the order of the state vector").
-            setSuggestedValue(AVMatrix<float>());
     
     QList<float> mode_probabilities_helper;
     QList<float> suggested_mode_probabilities = {0.5, 0.5};
@@ -98,7 +123,6 @@ AVIMMConfigContainer::AVIMMConfigContainer()
     // Fill list of Filtertype with corresponding enum values to string definition of config
     getFilterTypesFromConfig();
     // Convert float matrices
-    markov_transition_matrix    = convertAVMatrixFloatToEigenMatrix(markov_transition_matrix_helper);
     mode_probabilities          = convertQListFloatToEigenVector(mode_probabilities_helper);
     expansion_matrix            = convertAVMatrixFloatToEigenMatrix(expansion_matrix_helper);
     expansion_matrix_covariance = convertAVMatrixFloatToEigenMatrix(expansion_matrix_covariance_helper);
@@ -110,13 +134,26 @@ AVIMMConfigContainer::AVIMMConfigContainer()
         filter_type_map[subfilter->getConfigMapKey()] = KalmanFilter;
 }
 
-void AVIMMConfigContainer::getFilterTypesFromConfig()
+AVIMMDynamicConfigContainer::AVIMMDynamicConfigContainer()
+    : AVConfig2(DYNAMICCFG)
+{
+    // Read subconfigs
+    registerSubconfig(m_prefix, &area_filter_configs);
+    
+    AVConfig2Global::singleton().loadConfigAbsolute(CFGPATH);
+    AVConfig2Global::singleton().refreshAllParams();
+}
+
+// Helpers
+
+
+void AVIMMStaticConfigContainer::getFilterTypesFromConfig()
 {
     for (auto &filter_def : filter_definitions)
         filter_types.push_back(m_enum_map[filter_def]);
 }
 
-Matrix AVIMMConfigContainer::convertAVMatrixFloatToEigenMatrix(const AVMatrix<float> &M)
+Matrix AVIMMStaticConfigContainer::convertAVMatrixFloatToEigenMatrix(const AVMatrix<float> &M)
 {
     int rows = M.getRows();
     int cols = M.getColumns();
@@ -125,12 +162,12 @@ Matrix AVIMMConfigContainer::convertAVMatrixFloatToEigenMatrix(const AVMatrix<fl
     // Transfer Data element wise
     for (int i = 0; i < rows; i++)
         for (int j = 0; j < cols; j++)
-            converted_matrix(i, j) = static_cast<double>(M.get(i, j));;
+            converted_matrix(i, j) = static_cast<double>(M.get(i, j));
     
     return converted_matrix;
 }
 
-Vector AVIMMConfigContainer::convertQListFloatToEigenVector(const QList<float> &L)
+Vector AVIMMStaticConfigContainer::convertQListFloatToEigenVector(const QList<float> &L)
 {
     int num_elems = L.count();
     Vector converted_vector(num_elems, 1);
@@ -145,7 +182,7 @@ Vector AVIMMConfigContainer::convertQListFloatToEigenVector(const QList<float> &
 }
 
 // This has to be done manually since we don't know the size of the matrices at compile time
-Matrix AVIMMConfigContainer::createUnityMatrix(int size)
+Matrix AVIMMStaticConfigContainer::createUnityMatrix(int size)
 {
     Matrix m(size, size);
     for (int i = 0; i < size; i++)
