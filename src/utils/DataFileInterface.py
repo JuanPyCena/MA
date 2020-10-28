@@ -96,10 +96,10 @@ class DataFilteInterface(object):
                 measurement_data   = ParserLib.write_list(self.measurement_data[line])
                 state_data         = ParserLib.write_list(self.state_data[line])
                 mode_probabilities = ParserLib.write_list(self.mode_probabilities[line])
-                state_errors       = ParserLib.write_list(self.state_errors[line])
+                # state_errors       = ParserLib.write_list(self.state_errors[line])
 
                 writer.writerow({"measurement_data": measurement_data, 'state_data': state_data,
-                                 'mode_probabilities': mode_probabilities, 'state_errors': state_errors})
+                                 'mode_probabilities': mode_probabilities})
 
     ##############################################################################
 
