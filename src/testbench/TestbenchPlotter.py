@@ -163,8 +163,10 @@ class TestbenchPlotter(object):
         except:
             pass
 
+        ariport_map = plt.imread("D:\\programming\\masterarbeit\\src\\testbench\\EDDH_HAM_Layout.png")
         fig, axs = plt.subplots(1)
-        axs.plot(x_pos_measurement, y_pos_measurement, label="Measurement")
+        axs.imshow(ariport_map, extent=[-1730, 1453, -1450, 2930])
+        axs.plot(x_pos_measurement, y_pos_measurement, '--', label="Measurement")
         axs.plot(x_pos_state, y_pos_state, label="Dfuse3")
         axs.set_title('measurement_position')
         axs.set_xlabel("x")
@@ -182,7 +184,7 @@ class TestbenchPlotter(object):
         # axs[2].set_ylabel("y")
 
         fig.tight_layout()
-        plt.savefig(self.plot_name_imm_data + "_measurements", dpi=2000)
+        plt.savefig(self.plot_name_imm_data + "_measurements", dpi=500)
         plt.show()
 
         # fig, axs = plt.subplots(3)
@@ -218,7 +220,7 @@ class TestbenchPlotter(object):
         axs.legend()
 
         fig.tight_layout()
-        plt.savefig(self.plot_name_imm_data + "_mode", dpi=2000)
+        plt.savefig(self.plot_name_imm_data + "_mode", dpi=100)
         plt.show()
 
         fig, axs = plt.subplots(1)
@@ -256,7 +258,7 @@ class TestbenchPlotter(object):
         axs.set_title('Position errors')
         axs.legend()
 
-        plt.savefig(self.plot_name_imm_data + "_errors", dpi=2000)
+        plt.savefig(self.plot_name_imm_data + "_errors", dpi=100)
         plt.show()
 
         print("Finished Plotting IMM data")

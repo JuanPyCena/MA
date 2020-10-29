@@ -10,6 +10,7 @@ def main():
     test_data_file = "D:\\programming\\masterarbeit\\data\\test_eval_test_run_info.adb"
 
     for target in DataBase("D:\\programming\\masterarbeit\\data\\test_eval_test_run_info.adb").targets:
+    # for target in ["RYR8MJ"]:
         imm_data_file = "D:\\programming\\masterarbeit\\\src\\testbench\\imm_data\\imm_data_{}.csv".format(target)
         imm = TestbenchIMMDataBase(test_data_file, imm_data_file, target)
         imm.run()
