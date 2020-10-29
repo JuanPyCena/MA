@@ -79,7 +79,7 @@ class DataFilteInterface(object):
                 self.measurement_data   = ParserLib.read_matrix(row["measurement_data"])
                 self.state_data         = ParserLib.read_matrix(row["state_data"])
                 self.mode_probabilities = ParserLib.read_matrix(row["mode_probabilities"])
-                self.state_errors       = ParserLib.read_matrix(row["state_errors"])
+                # self.state_errors       = ParserLib.read_matrix(row["state_errors"])
 
     ##############################################################################
 

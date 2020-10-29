@@ -53,7 +53,7 @@ class ADBInterface(metaclass=abc.ABCMeta):
             "SELECT position_x,position_y FROM {} WHERE target_identification=?".format(table),
             (target,))
 
-        return [np.array([x, y]).astype(float) for x, y in pos_cursor.fetchall()]
+        return [np.array([x, -y]).astype(float) for x, y in pos_cursor.fetchall()]
 
     def _getTargetCovariance(self, target: str, table: str) -> list:
         cov_cursor = self.connection.execute("SELECT "
@@ -63,8 +63,8 @@ class ADBInterface(metaclass=abc.ABCMeta):
                                              " FROM {} WHERE target_identification=?".format(table),
                                              (target,))
 
-        return [np.array([[cov_x, cov_xy],
-                         [cov_xy, cov_y]])
+        return [np.array([[cov_x, -cov_xy],
+                         [-cov_xy, cov_y]])
                     .astype(float)
                 for cov_x, cov_y, cov_xy in cov_cursor.fetchall()]
 

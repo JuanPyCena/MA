@@ -110,8 +110,10 @@ class KalmanFilter(object):
         S_inv = np.linalg.inv(S)
 
         # Save system uncertainty into member variables
-        self.system_uncertainty = expand_matrix(S, len(self.state))
-        self.inverse_system_uncertainty = expand_matrix(S_inv, len(self.state))
+        # self.system_uncertainty = expand_matrix(S, len(self.state))
+        # self.inverse_system_uncertainty = expand_matrix(S_inv, len(self.state))
+        self.system_uncertainty = S
+        self.inverse_system_uncertainty = S_inv
 
         # K = PH'inv(S)
         # map system uncertainty into kalman gain
@@ -120,7 +122,7 @@ class KalmanFilter(object):
         # x = x + Ky
         # predict new state with residual scaled by the kalman gain
         self.state = self.state + np.dot(K, y)
-        self.error = expand_vector(np.round(z, 5) - np.round(np.dot(self.measurement_function, self.state).astype(float), 5))
+        self.error = np.round(z, 5) - np.round(np.dot(self.measurement_function, self.state).astype(float), 5)
 
         # P = (I-KH)P(I-KH)' + KRK'
         # This is more numerically stable

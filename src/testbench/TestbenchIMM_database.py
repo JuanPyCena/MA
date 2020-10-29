@@ -15,7 +15,7 @@ from datetime import datetime
 from src.utils.logmod import Logger
 
 # Global variables
-CFGPATH="D:\\programming\\pycharm\\Masterarbeit\\MA\\config\\imm_2models.cfg"
+CFGPATH="D:\\programming\\masterarbeit\\config\\imm.cfg"
 KALMANFILTERKEY = "^(KF+)(\d)*$"  # Regex so multiple KF can be used with numbering
 EXTENDEDKALMANFILTERKEY = "^(EKF+)(\d)*$"  # Regex so multiple EKF can be used with numbering
 SIGMA_A_SQ = 0
@@ -51,7 +51,7 @@ class TestbenchIMMDataBase(object):
 
         # define common initial values
         self.initial_input       = self.test_data_measurement[1]
-        self.initial_state       = self.test_data_measurement[0]
+        self.initial_state       = np.array([self.test_data_measurement[0][0], 0, 0, self.test_data_measurement[0][1], 0, 0])
         self.initial_measurement = self.initial_state
 
         # Keyword arguments needed for the EKF to work
@@ -81,7 +81,8 @@ class TestbenchIMMDataBase(object):
             self.imm.calculate_time_depended_matrices_of_filters(float(t) - last_update_time_stamp, measurement)
             # Save update time stamp
             last_update_time_stamp = float(t)
-            self.__ekf_kwds.append({"R": self.test_data_covariance[idx]})
+            self.__ekf_kwds[0] = {"R": self.test_data_covariance[idx]}
+            self.__ekf_kwds[1] = {"R": self.test_data_covariance[idx]}
             # Predict and update the state
             self.imm.predict_update(measurement, update_kwds=self.__ekf_kwds)
 

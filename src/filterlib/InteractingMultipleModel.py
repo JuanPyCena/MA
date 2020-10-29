@@ -180,6 +180,7 @@ class InteractingMultipleModel(object):
                 kwds = update_kwds["update_kwds"][idx]
             z = self._shrink_to_filter_state(measurement, len(filter.state))
             filter.state_uncertainty = kwds["R"]
+            del kwds["R"]
             filter.update(z, expand_matrix=self._expand_to_imm_s, expand_vector=self._expand_to_imm_state, **kwds)
             self.log.write_to_log("INFO: {} state after update: {}".format(filter, filter.state))
             self.likelihood[idx] = filter.likelihood
