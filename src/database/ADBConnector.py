@@ -11,9 +11,12 @@ class ADBConnector(ADBInterface):
         super().__init__(file)
         self._generateIMMInput()
 
+    def writeIMMDataToDatabase(self) -> None:
+        pass
+
     def _generateIMMInput(self) -> None:
         for target in self.targets:
-            positions   = self._getTargetPositions(table="sd_track", target=target)
-            covariances = self._getTargetCovariance(table="sd_track", target=target)
-            timestamps  = self._getDateTime(table="sd_track", target=target)
+            positions   = self._getTargetPositions(table="sd_mlat", target=target)
+            covariances = self._getTargetCovariance(table="sd_mlat", target=target)
+            timestamps  = self._getDateTime(table="sd_mlat", target=target)
             self.data = {target: (positions, covariances, timestamps)}

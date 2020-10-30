@@ -35,11 +35,11 @@ class ADBInterface(metaclass=abc.ABCMeta):
         return self._targets
 
     @abc.abstractmethod
-    def _generateIMMInput(sel) -> None:
+    def _generateIMMInput(self) -> None:
         raise NotImplemented
 
     def _getUniqueTargetIDs(self):
-        return np.unique([elem[0] for elem in self.connection.execute("SELECT target_identification FROM sd_track")
+        return np.unique([elem[0] for elem in self.connection.execute("SELECT target_identification FROM sd_mlat")
                           if elem[0] is not None]).tolist()
 
     def _create_connection(self, file) -> sql.Connection:
@@ -81,3 +81,7 @@ class ADBInterface(metaclass=abc.ABCMeta):
             times.append(datetime.fromtimestamp(float(datetime.timestamp(d)) + float(time)))
 
         return times
+
+    @abc.abstractmethod
+    def writeIMMDataToDatabase(self) -> None:
+        raise NotImplemented

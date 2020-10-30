@@ -6,6 +6,7 @@ from src.filterlib.Filters import ExtendedKalmanFilter as EKF
 from src.utils.DataFileInterface import DataFilteInterface as DFI
 from src.database.ADBConnector import ADBConnector as DataBase
 
+
 import re
 import numpy as np
 from math import sqrt
@@ -32,14 +33,16 @@ def hx(x):
 
 class TestbenchIMMDataBase(object):
     @typecheck(str, str)
-    def __init__(self, test_data, imm_data_file, target):
+    def __init__(self, test_data, imm_data_file, target, writer):
         """
         :param test_data: str - path to the database
         :param imm_data_file: str - holds the path were the simulated data shall be saved to
         """
 
         db_data = DataBase(test_data).data[target]
+        self.db_writer = writer
 
+        self.target = target
         # Save test data into member variables
         self.test_data_measurement = db_data[0]
         self.test_data_covariance  = db_data[1]
@@ -72,6 +75,7 @@ class TestbenchIMMDataBase(object):
         """
         print("Start running Testbench IMM")
         last_update_time_stamp = float(datetime.timestamp(self.test_data_time[0]))
+        states, covariances, times = [], [], []
         for idx, time in enumerate(self.test_data_time[1:]):
             t = datetime.timestamp(time)
             idx += 1
@@ -93,6 +97,9 @@ class TestbenchIMMDataBase(object):
             #
             # state_error        = np.abs(np.subtract(test_data_state, state))
 
+            states.append(state.copy())
+            covariances.append(self.imm.covariance.copy())
+            times.append(time)
             self.imm_data_writer.measurement_data   = measurement.copy()
             self.imm_data_writer.state_data         = state.copy()
             self.imm_data_writer.mode_probabilities = mode_probabilities.copy()
@@ -100,6 +107,7 @@ class TestbenchIMMDataBase(object):
 
 
         print("Finished running Testbench IMM, saving data...")
+        self.db_writer.data = {self.target: (states, covariances, times)}
         self.imm_data_writer.write()
         print("Data saved in: {}".format(self.imm_data_writer.file_name))
 

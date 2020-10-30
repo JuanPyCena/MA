@@ -165,7 +165,8 @@ class TestbenchPlotter(object):
 
         ariport_map = plt.imread("D:\\programming\\masterarbeit\\src\\testbench\\EDDH_HAM_Layout.png")
         fig, axs = plt.subplots(1)
-        axs.imshow(ariport_map, extent=[-1730, 1453, -1450, 2930])
+        # axs.imshow(ariport_map, extent=[-1730, 1453, -1450, 2930])
+        axs.imshow(ariport_map, extent=[-2176, 1644, -1800, 3466])
         axs.plot(x_pos_measurement, y_pos_measurement, '--', label="Measurement")
         axs.plot(x_pos_state, y_pos_state, label="Dfuse3")
         axs.set_title('measurement_position')
@@ -221,7 +222,7 @@ class TestbenchPlotter(object):
 
         fig.tight_layout()
         plt.savefig(self.plot_name_imm_data + "_mode", dpi=100)
-        plt.show()
+        # plt.show()
 
         fig, axs = plt.subplots(1)
         # axs[0].plot(self.test_data["time"][:-1], x_pos_error, label="Position-x")
@@ -259,7 +260,7 @@ class TestbenchPlotter(object):
         axs.legend()
 
         plt.savefig(self.plot_name_imm_data + "_errors", dpi=100)
-        plt.show()
+        # plt.show()
 
         print("Finished Plotting IMM data")
 
