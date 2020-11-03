@@ -1,5 +1,7 @@
 from dfuse.dfuse3 import DFuse3
 from dfuse.input_plot_reader import InputPlotReader
+from dfuse.output_track_writer import OutputTrackWriter
+
 from datetime import datetime
 from datetime import timedelta
 
@@ -13,9 +15,9 @@ log = Logger()
 def main():
     dfuse = DFuse3()
 
-    input_reader = InputPlotReader("D:\\programming\\masterarbeit\\data\\test_eval_test_run_info.adb")
-
-    mlat_plots = input_reader.plots("sd_mlat")
+    input_reader  = InputPlotReader("D:\\programming\\masterarbeit\\data\\test_eval_test_run_info.adb")
+    output_writer = OutputTrackWriter("D:\\programming\\masterarbeit\\data\\test_eval_test_run_info.adb")
+    mlat_plots    = input_reader.plots("sd_mlat")
 
     extrapolation_time = mlat_plots[0][3]
     input_data = []
@@ -38,8 +40,9 @@ def main():
 
     log.write_to_log("Start Simulation", consoleOutput=True)
 
-    # Go through the whole input data and extrapolate every time 1 second has passed
     for target_id, position, covariance, time, plot_id, extrapolate in input_data:
+
+        # Extrapolation every second
         if extrapolate:
             dfuse.extrapolate(plot_chain, time)
             # Reset plot chain
@@ -56,11 +59,12 @@ def main():
 
     imm_output = dfuse.extrapolated_targets
 
+    # write data to csv and plot
     for target in imm_output.keys():
         imm_data_file = "D:\\programming\\masterarbeit\\\src\\testbench\\imm_data\\imm_data_{}.csv".format(target)
         imm_data_writer = DFI(imm_data_file)
 
-        for state, covariance, mode_probabilities, _ in imm_output[target]:
+        for state, _, _, mode_probabilities, _ in imm_output[target]:
             imm_data_writer.state_data = state.copy()
             imm_data_writer.mode_probabilities = mode_probabilities.copy()
 
@@ -69,6 +73,9 @@ def main():
         plotter = TestbenchPlotter("D:\\programming\\pycharm\\Masterarbeit\\MA\\src\\testbench\\test_data\\test_data_acc_then_const.csv", imm_data_file)
         plotter.plot_imm_data()
 
+    # Save IMM output to database
+    output_writer.data = imm_output
+    output_writer.writeIMMDataToDatabase()
 
 if __name__ == "__main__":
     main()

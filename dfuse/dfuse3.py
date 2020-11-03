@@ -42,7 +42,7 @@ class DFuse3(object):
             time_diff = float(extrapolation_time.timestamp() - track.time_of_last_update.timestamp())
             track.calculate_time_depended_matrices_of_filters(time_diff, track.measurement)
             state, covariance, mode_probabilities = track.extrapolate()
-            self.__extrapolated_targets[target].append((state, covariance, mode_probabilities, ",".join(plot_chain_id[target])))
+            self.__extrapolated_targets[target].append((state, covariance, extrapolation_time, mode_probabilities, ",".join(plot_chain_id[target])))
 
     ##############################################################################
 
