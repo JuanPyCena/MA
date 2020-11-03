@@ -85,8 +85,8 @@ class TestbenchIMMDataBase(object):
             self.imm.calculate_time_depended_matrices_of_filters(float(t) - last_update_time_stamp, measurement)
             # Save update time stamp
             last_update_time_stamp = float(t)
-            self.__ekf_kwds[0] = {"R": self.test_data_covariance[idx]}
-            self.__ekf_kwds[1] = {"R": self.test_data_covariance[idx]}
+            self.__ekf_kwds[0] = {"R": self.__prepareR(self.test_data_covariance[idx])}
+            self.__ekf_kwds[1] = {"R": self.__prepareR(self.test_data_covariance[idx])}
             # Predict and update the state
             self.imm.predict_update(measurement, update_kwds=self.__ekf_kwds)
 
@@ -110,6 +110,9 @@ class TestbenchIMMDataBase(object):
         self.db_writer.data = {self.target: (states, covariances, times)}
         self.imm_data_writer.write()
         print("Data saved in: {}".format(self.imm_data_writer.file_name))
+
+    def __prepareR(self, mat: np.ndarray) -> np.ndarray:
+        return 1000*mat
 
     ##############################################################################
 

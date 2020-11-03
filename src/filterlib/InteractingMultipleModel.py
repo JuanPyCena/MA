@@ -4,10 +4,13 @@ from src.utils.Decorators import *
 from src.utils.ConfigParser import ParserLib
 from src.utils.logmod import Logger
 
+from datetime import datetime
+
 # Global Variables
 EmptyArray = np.array([])
 EmptyList = []
 SIGMA_A_SQ = 1
+SIGMA_B_SQ = 3
 
 # This filter is designed after the formulas described in https://drive.google.com/open?id=1KRITwuqHBTCtndpCvFQknt3VB0lFSruw
 
@@ -23,7 +26,7 @@ class InteractingMultipleModel(object):
         """
         # start logging
         self.log = Logger()
-        self.log.write_to_log("---------------------Start IMM---------------------")
+        self.log.write_to_log("---------------------Create IMM---------------------")
 
         # delete logfiles that are older then one day
         if self.log.delete_old_logfiles():
@@ -56,6 +59,8 @@ class InteractingMultipleModel(object):
         self.expansion_matrix_covariance = expansion_matrix_covariance
         self.expansion_matrix_S = expansion_matrix_S
         self.shrinking_matrix = shrinking_matrix
+
+        self.time_of_last_update = datetime.now()
 
         # calculated initial values
         self._calc_mode_probability_matrix()
@@ -194,6 +199,110 @@ class InteractingMultipleModel(object):
         self.covariance_post = self.covariance.copy()
 
         self.log.write_to_log("INFO: IMM state after update: {}".format(self.state_prior))
+
+    @typecheck(np.ndarray)
+    def predict_update(self, measurement, R, input=None, **update_kwds):
+        """
+        This function makes a prediction of each filter using their respective predict function and updates their states
+        and covariances aswell
+        :param measurement: np.ndarray - holds the measurement of the sensor
+        :param input: np.ndarray - holds the input into to directly interact with the states of each filter, default(None)
+        :param update_kwds: dict - holds a list which can be used to parse several additional inputs to the update
+                                   function of the various filters
+                                   (e.g.: "kwds = [{}, {"HJacobian": self.H_of, "Hx": self.hx}]",
+                                   This example uses a Kalmanfilter as the first filter and an
+                                   ExtendedKalmanFilter as the seconds filter)
+        """
+        if input is None:
+            input = np.array([])
+
+        self.measurement = measurement
+
+        self._calc_mixed_state()
+
+        for idx, filter in enumerate(self.filters):
+            # update filter state and covariance to current mixed values
+            filter.state      = self._shrink_to_filter_state(self.mixed_state[idx], len(filter.state))
+            filter.covariance = self._shrink_to_filter_covariance(self.mixed_covariance[idx], len(filter.state))
+            filter.predict(input)
+            self.log.write_to_log("INFO: {} state after prediction: {}".format(filter, filter.state))
+
+        # Calculate the IMM state after prediction of each filter has finished
+        self._calc_imm_state()
+        self.state_prior      = self.state.copy()
+        self.covariance_prior = self.covariance.copy()
+
+        self.log.write_to_log("INFO: IMM state after prediction: {}".format(self.state_prior))
+
+        for idx, filter in enumerate(self.filters):
+            kwds = dict()
+            if "update_kwds" in update_kwds.keys():
+                kwds = update_kwds["update_kwds"][idx]
+            z = self._shrink_to_filter_state(measurement, len(filter.state))
+            filter.state_uncertainty = R
+            filter.update(z, expand_matrix=self._expand_to_imm_s, expand_vector=self._expand_to_imm_state, **kwds)
+            self.log.write_to_log("INFO: {} state after update: {}".format(filter, filter.state))
+            self.likelihood[idx] = filter.likelihood
+
+        # Calculate the mode probabilities and recalculate the probability matrix
+        self._calc_mode_probability()
+        self._calc_mode_probability_matrix()
+
+        self._calc_imm_state()
+        self.state_post      = self.state.copy()
+        self.covariance_post = self.covariance.copy()
+
+        self.log.write_to_log("INFO: IMM state after update: {}".format(self.state_prior))
+
+    ##############################################################################
+
+    @typecheck(np.ndarray)
+    def extrapolate(self):
+        xs, Ps = [], []
+        for i, (f_i, w_i) in enumerate(zip(self.filters, self.mode_probability_matrix.T)):
+            x = np.zeros(self.state.shape)
+            for filter, probability_j in zip(self.filters, w_i):
+                filter_state_expanded = self._expand_to_imm_state(filter.state)
+                x = x + filter_state_expanded * probability_j
+            xs.append(x.astype(float))
+
+            P = np.zeros(self.covariance.shape)
+            for filter, probability_j in zip(self.filters, w_i):
+                filter_state_expanded = self._expand_to_imm_state(filter.state)
+                filter_covariance_expanded = self._expand_to_imm_covariance(filter.covariance, len(filter.state))
+                state_diff = filter_state_expanded - x
+                P = P + probability_j * (np.outer(state_diff, state_diff) + filter_covariance_expanded)
+            Ps.append(P.astype(float))
+
+        for idx, filter in enumerate(self.filters):
+            # update filter state and covariance to current mixed values
+            filter.state      = self._shrink_to_filter_state(xs[idx], len(filter.state))
+            filter.covariance = self._shrink_to_filter_covariance(Ps[idx], len(filter.state))
+            filter.extrapolate()
+
+        # The IMM mixed state is the sum of all filter state weighted by its probability
+        state = self.state.copy()
+        state.fill(0)
+        for filter, probability in zip(self.filters, self.mode_probabilities):
+            filter_state_expanded = self._expand_to_imm_state(filter.state_extrapolated)
+            state = state + filter_state_expanded * probability
+
+        # The covariance is the sum of each covariance + the square of the state difference of each
+        # filter to the mixed state weighted by its probability
+        covariance = self.covariance.copy()
+        covariance.fill(0)
+        for filter, probability in zip(self.filters, self.mode_probabilities):
+            # the difference in state between the IMM and each filter is used to calculate the covariance matrix
+            filter_state_expanded = self._expand_to_imm_state(filter.state_extrapolated)
+            filter_covariance_expanded = self._expand_to_imm_covariance(filter.covariance_extrapolated, len(filter.state_extrapolated))
+            state_diff = filter_state_expanded - state
+            # P_imm = sum(mu[i] *(state_diff * state_diff' + P_filter))
+            covariance = covariance + probability * (np.outer(state_diff, state_diff) + filter_covariance_expanded)
+
+        self.log.write_to_log("INFO: IMM extrapolation: {}".format(state))
+
+        return state, covariance, self.mode_probabilities
+
     ##############################################################################
 
     @typecheck(float)
@@ -202,8 +311,8 @@ class InteractingMultipleModel(object):
         This function replaces the place holder "dt" within all matrices of all filters with a given float values
         :param time_delta: float - time since last calculation step
         """
-        variables = ["sigma_a_sq", "vx", "vy", "ax", "ay", "x_m", "y_m", "x", "y"]
-        variable_replacement = [SIGMA_A_SQ, self.state[1], self.state[3], self.state[4], self.state[5], measurement[0],
+        variables = ["sigma_b_sq", "sigma_a_sq", "vx", "vy", "ax", "ay", "x_m", "y_m", "x", "y"]
+        variable_replacement = [SIGMA_B_SQ, SIGMA_A_SQ, self.state[1], self.state[3], self.state[4], self.state[5], measurement[0],
                                 measurement[1], self.state[0], self.state[2]]
         functions = ["cos", "sin", "arctan"]
         function_replacement = ["np.cos", "np.sin", "np.arctan"]

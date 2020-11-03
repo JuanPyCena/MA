@@ -138,8 +138,8 @@ class TestbenchPlotter(object):
 
     def plot_imm_data(self):
         print("Start Plotting IMM data")
-        x_pos_measurement = [pos[0] for pos in self.imm_data["position_measurement"]]
-        y_pos_measurement = [pos[1] for pos in self.imm_data["position_measurement"]]
+        # x_pos_measurement = [pos[0] for pos in self.imm_data["position_measurement"]]
+        # y_pos_measurement = [pos[1] for pos in self.imm_data["position_measurement"]]
         # x_vel_measurement = [vel[0] for vel in self.imm_data["velocity_measurement"]]
         # y_vel_measurement = [vel[1] for vel in self.imm_data["velocity_measurement"]]
         # x_acc_measurement = [acc[0] for acc in self.imm_data["acceleration_measurement"]]
@@ -150,8 +150,8 @@ class TestbenchPlotter(object):
         y_vel_state       = [vel[1] for vel in self.imm_data["velocity_state"]]
         x_acc_state       = [acc[0] for acc in self.imm_data["acceleration_state"]]
         y_acc_state       = [acc[1] for acc in self.imm_data["acceleration_state"]]
-        x_pos_error       = [pos[0] for pos in self.imm_data["position_error"]]
-        y_pos_error       = [pos[1] for pos in self.imm_data["position_error"]]
+        # x_pos_error       = [pos[0] for pos in self.imm_data["position_error"]]
+        # y_pos_error       = [pos[1] for pos in self.imm_data["position_error"]]
         # x_vel_error       = [vel[0] for vel in self.imm_data["velocity_error"]]
         # y_vel_error       = [vel[1] for vel in self.imm_data["velocity_error"]]
         # x_acc_error       = [acc[0] for acc in self.imm_data["acceleration_error"]]
@@ -167,9 +167,9 @@ class TestbenchPlotter(object):
         fig, axs = plt.subplots(1)
         # axs.imshow(ariport_map, extent=[-1730, 1453, -1450, 2930])
         axs.imshow(ariport_map, extent=[-2176, 1644, -1800, 3466])
-        axs.plot(x_pos_measurement, y_pos_measurement, '--', label="Measurement")
+        #axs.plot(x_pos_measurement, y_pos_measurement, ':', label="Measurement")
         axs.plot(x_pos_state, y_pos_state, label="Dfuse3")
-        axs.set_title('measurement_position')
+        axs.set_title('IMM Output')
         axs.set_xlabel("x")
         axs.set_ylabel("y")
         axs.legend()
@@ -185,8 +185,8 @@ class TestbenchPlotter(object):
         # axs[2].set_ylabel("y")
 
         fig.tight_layout()
-        plt.savefig(self.plot_name_imm_data + "_measurements", dpi=500)
-        plt.show()
+        plt.savefig(self.plot_name_imm_data + "_output", dpi=500)
+        #plt.show()
 
         # fig, axs = plt.subplots(3)
         # axs[0].plot(x_pos_state, y_pos_state)
@@ -224,7 +224,7 @@ class TestbenchPlotter(object):
         plt.savefig(self.plot_name_imm_data + "_mode", dpi=100)
         # plt.show()
 
-        fig, axs = plt.subplots(1)
+        #fig, axs = plt.subplots(1)
         # axs[0].plot(self.test_data["time"][:-1], x_pos_error, label="Position-x")
         # axs[0].plot(self.test_data["time"][:-1], y_pos_error, label="Position-y")
         # axs[0].set_xticklabels([])
@@ -249,17 +249,17 @@ class TestbenchPlotter(object):
         # axs[2].set_ylabel("Error")
         # axs[2].set_title('Acceleration errors')
         # axs[2].legend()
-
-        axs.plot(x_pos_error, label="Position-x")
-        axs.plot(y_pos_error, label="Position-y")
-        axs.set_xticklabels([])
-        axs.set_xticks([])
-        axs.set_xlabel("Time")
-        axs.set_ylabel("Error")
-        axs.set_title('Position errors')
-        axs.legend()
-
-        plt.savefig(self.plot_name_imm_data + "_errors", dpi=100)
+        #
+        # axs.plot(x_pos_error, label="Position-x")
+        # axs.plot(y_pos_error, label="Position-y")
+        # axs.set_xticklabels([])
+        # axs.set_xticks([])
+        # axs.set_xlabel("Time")
+        # axs.set_ylabel("Error")
+        # axs.set_title('Position errors')
+        # axs.legend()
+        #
+        # plt.savefig(self.plot_name_imm_data + "_errors", dpi=100)
         # plt.show()
 
         print("Finished Plotting IMM data")

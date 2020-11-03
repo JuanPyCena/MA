@@ -76,7 +76,7 @@ class DataFilteInterface(object):
         with open(self.__file_name, mode='r') as csv_file:
             csv_reader = csv.DictReader(csv_file, delimiter=";")
             for row in csv_reader:
-                self.measurement_data   = ParserLib.read_matrix(row["measurement_data"])
+                # self.measurement_data   = ParserLib.read_matrix(row["measurement_data"])
                 self.state_data         = ParserLib.read_matrix(row["state_data"])
                 self.mode_probabilities = ParserLib.read_matrix(row["mode_probabilities"])
                 # self.state_errors       = ParserLib.read_matrix(row["state_errors"])
@@ -88,17 +88,15 @@ class DataFilteInterface(object):
         Writes the data saved in this object to the given file
         """
         with open(self.__file_name, mode='w', newline="") as csv_file:
-            fieldnames = ["measurement_data", "state_data", "mode_probabilities", "state_errors"]
+            fieldnames = ["state_data", "mode_probabilities"]
             writer = csv.DictWriter(csv_file, fieldnames=fieldnames, delimiter=";")
             writer.writeheader()
 
-            for line, _ in enumerate(self.measurement_data):
-                measurement_data   = ParserLib.write_list(self.measurement_data[line])
+            for line, _ in enumerate(self.state_data):
                 state_data         = ParserLib.write_list(self.state_data[line])
                 mode_probabilities = ParserLib.write_list(self.mode_probabilities[line])
-                # state_errors       = ParserLib.write_list(self.state_errors[line])
 
-                writer.writerow({"measurement_data": measurement_data, 'state_data': state_data,
+                writer.writerow({'state_data': state_data,
                                  'mode_probabilities': mode_probabilities})
 
     ##############################################################################

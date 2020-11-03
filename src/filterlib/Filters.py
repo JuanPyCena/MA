@@ -54,6 +54,9 @@ class KalmanFilter(object):
         self.state_post         = self.state.copy()
         self.covariance_post    = self.covariance.copy()
 
+        self.state_extrapolated      = self.state.copy()
+        self.covariance_extrapolated = self.covariance.copy()
+
         # Private variables for saving the likelihood of this filter
         self._log_likelihood = log(sys.float_info.min)
         self._likelihood     = sys.float_info.min
@@ -87,6 +90,24 @@ class KalmanFilter(object):
         # save prior
         self.state_prior      = self.state.copy()
         self.covariance_prior = self.covariance.copy()
+
+    ##############################################################################
+
+    @typecheck((np.ndarray, ))
+    def extrapolate(self):
+        """
+        Predict next state (prior) using the Kalman filter state propagation
+        equations.
+        :param input: np.ndarray - input to directly influence the state, default(None)
+        """
+        if input is not None:
+            self.input = input
+
+        # x = Fx + Gu
+        self.state_extrapolated = np.dot(self.transition_function, self.state)
+
+        # P = FPF' + Q
+        self.covariance_extrapolated = np.dot(np.dot(self.transition_function, self.covariance), self.transition_function.T) + self.process_noise_function
 
     ##############################################################################
 
@@ -225,6 +246,9 @@ class ExtendedKalmanFilter(object):
         self.state_post = self.state.copy()
         self.covariance_post = self.covariance.copy()
 
+        self.state_extrapolated = self.state.copy()
+        self.covariance_extrapolated = self.covariance.copy()
+
         # Private variables for saving the likelihood of this filter
         self._log_likelihood = log(sys.float_info.min)
         self._likelihood     = sys.float_info.min
@@ -301,6 +325,24 @@ class ExtendedKalmanFilter(object):
         # save prior
         self.state_prior      = np.copy(self.state)
         self.covariance_prior = np.copy(self.covariance)
+
+    ##############################################################################
+
+    @typecheck((np.ndarray, ))
+    def extrapolate(self):
+        """
+        Predict next state (prior) using the Kalman filter state propagation
+        equations.
+        :param input: np.ndarray - input to directly influence the state, default(None)
+        """
+        if input is not None:
+            self.input = input
+
+        # x = Fx + Gu
+        self.state_extrapolated = np.dot(self.transition_function, self.state)
+
+        # P = FPF' + Q
+        self.covariance_extrapolated = np.dot(np.dot(self.transition_function, self.covariance), self.transition_function.T) + self.process_noise_function
 
     ##############################################################################
 
