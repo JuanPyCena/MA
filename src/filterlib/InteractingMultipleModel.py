@@ -9,8 +9,8 @@ from datetime import datetime
 # Global Variables
 EmptyArray = np.array([])
 EmptyList = []
-SIGMA_A_SQ = 1
-SIGMA_B_SQ = 3
+SIGMA_A_SQ = 3
+SIGMA_B_SQ = 1
 
 # This filter is designed after the formulas described in https://drive.google.com/open?id=1KRITwuqHBTCtndpCvFQknt3VB0lFSruw
 
@@ -257,7 +257,8 @@ class InteractingMultipleModel(object):
     ##############################################################################
 
     @typecheck(np.ndarray)
-    def extrapolate(self):
+    def extrapolate(self, input=None):
+
         xs, Ps = [], []
         for i, (f_i, w_i) in enumerate(zip(self.filters, self.mode_probability_matrix.T)):
             x = np.zeros(self.state.shape)
@@ -278,7 +279,10 @@ class InteractingMultipleModel(object):
             # update filter state and covariance to current mixed values
             filter.state      = self._shrink_to_filter_state(xs[idx], len(filter.state))
             filter.covariance = self._shrink_to_filter_covariance(Ps[idx], len(filter.state))
-            filter.extrapolate()
+            if input is not None:
+                filter.extrapolate(input)
+            else:
+                filter.extrapolate()
 
         # The IMM mixed state is the sum of all filter state weighted by its probability
         state = self.state.copy()

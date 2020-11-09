@@ -94,17 +94,18 @@ class KalmanFilter(object):
     ##############################################################################
 
     @typecheck((np.ndarray, ))
-    def extrapolate(self):
+    def extrapolate(self, input=None):
         """
         Predict next state (prior) using the Kalman filter state propagation
         equations.
         :param input: np.ndarray - input to directly influence the state, default(None)
         """
-        if input is not None:
-            self.input = input
 
         # x = Fx + Gu
-        self.state_extrapolated = np.dot(self.transition_function, self.state)
+        if self.input_function.shape != EmptyArray.shape and input is not None:
+            self.state_extrapolated = np.dot(self.transition_function, self.state) + np.dot(self.input_function, input)
+        else:
+            self.state_extrapolated = np.dot(self.transition_function, self.state)
 
         # P = FPF' + Q
         self.covariance_extrapolated = np.dot(np.dot(self.transition_function, self.covariance), self.transition_function.T) + self.process_noise_function
@@ -329,17 +330,17 @@ class ExtendedKalmanFilter(object):
     ##############################################################################
 
     @typecheck((np.ndarray, ))
-    def extrapolate(self):
+    def extrapolate(self, input=None):
         """
         Predict next state (prior) using the Kalman filter state propagation
         equations.
         :param input: np.ndarray - input to directly influence the state, default(None)
         """
-        if input is not None:
-            self.input = input
-
         # x = Fx + Gu
-        self.state_extrapolated = np.dot(self.transition_function, self.state)
+        if self.input_function.shape != EmptyArray.shape and input is not None:
+            self.state_extrapolated = np.dot(self.transition_function, self.state) + np.dot(self.input_function, input)
+        else:
+            self.state_extrapolated = np.dot(self.transition_function, self.state)
 
         # P = FPF' + Q
         self.covariance_extrapolated = np.dot(np.dot(self.transition_function, self.covariance), self.transition_function.T) + self.process_noise_function
