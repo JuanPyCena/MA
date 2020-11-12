@@ -41,8 +41,10 @@ class KalmanFilter(object):
         self.jacobi_matrix          = state_transition_matrix               # J, Jacobi matrix, not used for KF
 
         # Variables to save the system uncertainty projected into the measurment space. To be used in likelyhood calculations
-        self.system_uncertainty         = None  # S
-        self.inverse_system_uncertainty = None  # inv(S)
+        self.system_uncertainty         = np.zeros((2,2))  # S
+        self.inverse_system_uncertainty = np.zeros((2,2))  # inv(S)
+
+        self.K = np.zeros((6,2))
 
         # Set values prior to prediction
         # these will always be a copy of state,covariance after predict() is called
@@ -140,6 +142,7 @@ class KalmanFilter(object):
         # K = PH'inv(S)
         # map system uncertainty into kalman gain
         K = np.dot(PH_transpose, S_inv)
+        self.K = K
 
         # x = x + Ky
         # predict new state with residual scaled by the kalman gain

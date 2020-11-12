@@ -18,6 +18,19 @@ class DataFilteInterface(object):
         self.__state_data         = []
         self.__mode_probabilities = []
         self.__state_errors       = []
+        self.K0 = []
+        self.K1 = []
+        self.z0 = []
+        self.R0 = []
+        self.R1 = []
+        self.Q0 = []
+        self.Q1 = []
+        self.x_prior0 = []
+        self.x_prior1 = []
+        self.x_post0 = []
+        self.x_post1 = []
+        self.S0 = []
+        self.S1 = []
 
     ##############################################################################
 
@@ -72,14 +85,38 @@ class DataFilteInterface(object):
         self.__state_data         = []
         self.__mode_probabilities = []
         self.__state_errors       = []
+        self.K0 = []
+        self.K1 = []
+        self.z0 = []
+        self.R0 = []
+        self.R1 = []
+        self.Q0 = []
+        self.Q1 = []
+        self.x_prior0 = []
+        self.x_prior1 = []
+        self.x_post0 = []
+        self.x_post1 = []
+        self.S0 = []
+        self.S1 = []
 
         with open(self.__file_name, mode='r') as csv_file:
             csv_reader = csv.DictReader(csv_file, delimiter=";")
             for row in csv_reader:
-                # self.measurement_data   = ParserLib.read_matrix(row["measurement_data"])
                 self.state_data         = ParserLib.read_matrix(row["state_data"])
                 self.mode_probabilities = ParserLib.read_matrix(row["mode_probabilities"])
-                # self.state_errors       = ParserLib.read_matrix(row["state_errors"])
+                self.K0.append(ParserLib.read_matrix(row["K0"]))
+                self.K1.append(ParserLib.read_matrix(row["K1"]))
+                self.z0.append(ParserLib.read_matrix(row["z"]))
+                self.R0.append(ParserLib.read_matrix(row["R0"]))
+                self.R1.append(ParserLib.read_matrix(row["R1"]))
+                self.Q0.append(ParserLib.read_matrix(row["Q0"]))
+                self.Q1.append(ParserLib.read_matrix(row["Q1"]))
+                self.x_prior0.append(ParserLib.read_matrix(row["xprior0"]))
+                self.x_prior1.append(ParserLib.read_matrix(row["xprior1"]))
+                self.x_post0.append(ParserLib.read_matrix(row["xpost0"]))
+                self.x_post1.append(ParserLib.read_matrix(row["xpost1"]))
+                self.S0.append(ParserLib.read_matrix(row["S0"]))
+                self.S1.append(ParserLib.read_matrix(row["S1"]))
 
     ##############################################################################
 
@@ -88,16 +125,58 @@ class DataFilteInterface(object):
         Writes the data saved in this object to the given file
         """
         with open(self.__file_name, mode='w', newline="") as csv_file:
-            fieldnames = ["state_data", "mode_probabilities"]
+            fieldnames = ["state_data",
+                          "mode_probabilities",
+                          "xprior0",
+                          "xprior1",
+                          "xpost0",
+                          "xpost1",
+                          "z",
+                          "K0",
+                          "K1",
+                          "R0",
+                          "R1",
+                          "Q0",
+                          "Q1",
+                          "S0",
+                          "S1",
+                          ]
             writer = csv.DictWriter(csv_file, fieldnames=fieldnames, delimiter=";")
             writer.writeheader()
 
             for line, _ in enumerate(self.state_data):
                 state_data         = ParserLib.write_list(self.state_data[line])
                 mode_probabilities = ParserLib.write_list(self.mode_probabilities[line])
+                xprior0 = ParserLib.write_list(self.x_prior0[line])
+                xprior1 = ParserLib.write_list(self.x_prior1[line])
+                xpost0 = ParserLib.write_list(self.x_post0[line])
+                xpost1 = ParserLib.write_list(self.x_post1[line])
+                z = ParserLib.write_list(self.z0[line])
+                K0 = ParserLib.write_list(self.K0[line])
+                K1 = ParserLib.write_list(self.K1[line])
+                R0 = ParserLib.write_list(self.R0[line])
+                R1 = ParserLib.write_list(self.R1[line])
+                Q0 = ParserLib.write_list(self.Q0[line])
+                Q1 = ParserLib.write_list(self.Q1[line])
+                S0 = ParserLib.write_list(self.S0[line])
+                S1 = ParserLib.write_list(self.S1[line])
 
                 writer.writerow({'state_data': state_data,
-                                 'mode_probabilities': mode_probabilities})
+                                 'mode_probabilities': mode_probabilities,
+                                 'xprior0': xprior0,
+                                 'xprior1': xprior1,
+                                 'xpost0': xpost0,
+                                 'xpost1': xpost1,
+                                 'z': z,
+                                 'K0': K0,
+                                 'K1': K1,
+                                 'R0': R0,
+                                 'R1': R1,
+                                 'Q0': Q0,
+                                 'Q1': Q1,
+                                 'S0': S0,
+                                 'S1': S1
+                                 })
 
     ##############################################################################
 

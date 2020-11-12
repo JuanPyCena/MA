@@ -82,13 +82,18 @@ class ParserLib(object):
         """
         list_str = str(np_list.astype(float))
         # Remove brackets, leading and trailing whitespaces
+        list_str = list_str.replace("[ ", "[")
         list_str = list_str[1:-1].strip()
         # Remove doubled whitespaces
         list_str = " ".join(list_str.split())
         # Make whitespace into whitspace plus comma to have a readable list
         list_str = list_str.replace(" ", ", ")
+        list_str = list_str.replace("-0.,", "0.,")
+        list_str = list_str.replace("0.,", "0,")
         # Add brackets again
         list_str = "[" + list_str + "]"
+        list_str = list_str.replace("[,", "[ ")
+        list_str = list_str.replace(", ]", "]")
         return list_str
 
     ##############################################################################

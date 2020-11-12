@@ -34,7 +34,7 @@ class TestbenchPlotter(object):
 
     def __retrieve_data(self):
         # measurement_data
-        measurement_data = self.df_interface.measurement_data
+        measurement_data = self.df_interface.z0
         position_measurement, velocity_measurement, acceleration_measurement = [], [], []
         pos_error = []
 
@@ -61,6 +61,7 @@ class TestbenchPlotter(object):
         # state_data
         state_data = self.df_interface.state_data
         position_state, velocity_state, acceleration_state = [], [], []
+        velocity_magnitude, velocity_heading, acceleration_magnitude, acceleration_heading = [], [], [], []
 
         for data_point in state_data:
             pos, vel, acc = [], [], []
@@ -73,10 +74,18 @@ class TestbenchPlotter(object):
             position_state.append(pos)
             velocity_state.append(vel)
             acceleration_state.append(acc)
+            velocity_magnitude.append(np.sqrt((data_point[1]**2 + data_point[4]**2)))
+            velocity_heading.append(np.arctan((data_point[4], data_point[1])) * 180/np.pi)
+            acceleration_magnitude.append(np.sqrt((data_point[2]**2 + data_point[5]**2)))
+            acceleration_heading.append(np.arctan((data_point[5], data_point[2])) * 180/np.pi)
 
         self.imm_data["position_state"]     = position_state
         self.imm_data["velocity_state"]     = velocity_state
+        self.imm_data["velocity_magnitude"]     = velocity_magnitude
+        self.imm_data["velocity_heading"]     = velocity_heading
         self.imm_data["acceleration_state"] = acceleration_state
+        self.imm_data["acceleration_magnitude"] = acceleration_magnitude
+        self.imm_data["acceleration_heading"] = acceleration_heading
 
         # # state_errors
         # state_errors = self.df_interface.state_errors
@@ -150,8 +159,12 @@ class TestbenchPlotter(object):
         y_vel_state       = [vel[1] for vel in self.imm_data["velocity_state"]]
         x_acc_state       = [acc[0] for acc in self.imm_data["acceleration_state"]]
         y_acc_state       = [acc[1] for acc in self.imm_data["acceleration_state"]]
-        # x_pos_error       = [pos[0] for pos in self.imm_data["position_error"]]
-        # y_pos_error       = [pos[1] for pos in self.imm_data["position_error"]]
+        vel_mag       = [vel for vel in self.imm_data["velocity_magnitude"]]
+        vel_head       = [vel for vel in self.imm_data["velocity_heading"]]
+        acc_mag       = [acc for acc in self.imm_data["acceleration_magnitude"]]
+        acc_head       = [acc for acc in self.imm_data["acceleration_heading"]]
+        x_pos_error       = [pos[0] for pos in self.imm_data["position_error"]]
+        y_pos_error       = [pos[1] for pos in self.imm_data["position_error"]]
         # x_vel_error       = [vel[0] for vel in self.imm_data["velocity_error"]]
         # y_vel_error       = [vel[1] for vel in self.imm_data["velocity_error"]]
         # x_acc_error       = [acc[0] for acc in self.imm_data["acceleration_error"]]
@@ -188,22 +201,52 @@ class TestbenchPlotter(object):
         plt.savefig(self.plot_name_imm_data + "_output", dpi=500)
         #plt.show()
 
-        # fig, axs = plt.subplots(3)
-        # axs[0].plot(x_pos_state, y_pos_state)
-        # axs[0].set_title('state_position')
-        # axs[0].set_xlabel("x")
-        # axs[0].set_ylabel("y")
+        fig, axs = plt.subplots(4)
+        axs[0].plot(x_vel_state)
+        axs[0].set_title('state_vel_x')
+        axs[0].set_xlabel("time")
+        axs[0].set_ylabel("vel_x")
 
-        # axs[1].plot(x_vel_state, y_vel_state)
-        # axs[1].set_title('state_velocity')
-        # axs[1].set_xlabel("x")
-        # axs[1].set_ylabel("y")
-        #
-        # axs[2].plot(x_acc_state, y_acc_state)
-        # axs[2].set_title('state_acceleration')
-        # axs[2].set_xlabel("x")
-        # axs[2].set_ylabel("y")
-        # plt.savefig(self.plot_name_imm_data + "_state", dpi=100)
+        axs[1].plot(y_vel_state)
+        axs[1].set_title('state_vel_y')
+        axs[1].set_xlabel("time")
+        axs[1].set_ylabel("vel_y")
+
+        axs[2].plot(vel_mag)
+        axs[2].set_title('vel_mag')
+        axs[2].set_xlabel("time")
+        axs[2].set_ylabel("vel_mag")
+
+        axs[3].plot(vel_head)
+        axs[3].set_title('vel_head')
+        axs[3].set_xlabel("time")
+        axs[3].set_ylabel("vel_head")
+
+        plt.savefig(self.plot_name_imm_data + "_vel_state", dpi=100)
+        # plt.show()
+
+        fig, axs = plt.subplots(4)
+        axs[0].plot(x_acc_state)
+        axs[0].set_title('state_acc_x')
+        axs[0].set_xlabel("time")
+        axs[0].set_ylabel("acc_x")
+
+        axs[1].plot(y_acc_state)
+        axs[1].set_title('state_acc_y')
+        axs[1].set_xlabel("time")
+        axs[1].set_ylabel("acc_y")
+
+        axs[2].plot(acc_mag)
+        axs[2].set_title('acc_mag')
+        axs[2].set_xlabel("time")
+        axs[2].set_ylabel("acc_mag")
+
+        axs[3].plot(acc_head)
+        axs[3].set_title('acc_head')
+        axs[3].set_xlabel("time")
+        axs[3].set_ylabel("acc_head")
+
+        plt.savefig(self.plot_name_imm_data + "_acc_state", dpi=100)
         # plt.show()
 
         fig, axs = plt.subplots(1)
@@ -218,13 +261,14 @@ class TestbenchPlotter(object):
         axs.set_xlabel("Time")
         axs.set_ylabel("Mode Probability")
         axs.set_title('mode_probabilities')
+        axs.set_ylim([0, 1])
         axs.legend()
 
         fig.tight_layout()
         plt.savefig(self.plot_name_imm_data + "_mode", dpi=100)
         # plt.show()
 
-        #fig, axs = plt.subplots(1)
+        fig, axs = plt.subplots(1)
         # axs[0].plot(self.test_data["time"][:-1], x_pos_error, label="Position-x")
         # axs[0].plot(self.test_data["time"][:-1], y_pos_error, label="Position-y")
         # axs[0].set_xticklabels([])
@@ -250,16 +294,16 @@ class TestbenchPlotter(object):
         # axs[2].set_title('Acceleration errors')
         # axs[2].legend()
         #
-        # axs.plot(x_pos_error, label="Position-x")
-        # axs.plot(y_pos_error, label="Position-y")
-        # axs.set_xticklabels([])
-        # axs.set_xticks([])
-        # axs.set_xlabel("Time")
-        # axs.set_ylabel("Error")
-        # axs.set_title('Position errors')
-        # axs.legend()
-        #
-        # plt.savefig(self.plot_name_imm_data + "_errors", dpi=100)
+        axs.plot(x_pos_error, label="Position-x")
+        axs.plot(y_pos_error, label="Position-y")
+        axs.set_xticklabels([])
+        axs.set_xticks([])
+        axs.set_xlabel("Time")
+        axs.set_ylabel("Plot-Track-Diff")
+        axs.set_title('Plot-Track-Diff')
+        axs.legend()
+
+        plt.savefig(self.plot_name_imm_data + "_Plot-Track-Diff", dpi=100)
         # plt.show()
 
         print("Finished Plotting IMM data")

@@ -1,4 +1,6 @@
-from dfuse.dfuse3 import DFuse3
+# from dfuse.dfuse3 import DFuse3
+from dfuse.dfuse3_filterpy import DFuse3
+# from dfuse.dfuse3_kalman_only import DFuse3
 from dfuse.input_plot_reader import InputPlotReader
 from dfuse.output_track_writer import OutputTrackWriter
 
@@ -80,7 +82,24 @@ def main():
         imm_data_file = "D:\\programming\\masterarbeit\\\src\\testbench\\imm_data\\imm_data_{}.csv".format(target)
         imm_data_writer = DFI(imm_data_file)
 
-        for state, _, _, mode_probabilities, _ in imm_output[target]:
+        for state, _, _, mode_probabilities, _, metadata_f0, metadata_f1 in imm_output[target]:
+            state_prior, state_post, K, system_uncertainty, process_noise_function, state_uncertainty, measurement = metadata_f0
+            imm_data_writer.x_prior0.append(state_prior.copy())
+            imm_data_writer.x_post0.append(state_post.copy())
+            imm_data_writer.K0.append(K.copy())
+            imm_data_writer.R0.append(system_uncertainty.copy())
+            imm_data_writer.Q0.append(process_noise_function.copy())
+            imm_data_writer.S0.append(state_uncertainty.copy())
+            imm_data_writer.z0.append(measurement.copy())
+
+            state_prior, state_post, K, system_uncertainty, process_noise_function, state_uncertainty, measurement = metadata_f1
+            imm_data_writer.x_prior1.append(state_prior.copy())
+            imm_data_writer.x_post1.append( state_post.copy())
+            imm_data_writer.K1.append(K.copy())
+            imm_data_writer.R1.append(system_uncertainty.copy())
+            imm_data_writer.Q1.append(process_noise_function.copy())
+            imm_data_writer.S1.append(state_uncertainty.copy())
+
             imm_data_writer.state_data = state.copy()
             imm_data_writer.mode_probabilities = mode_probabilities.copy()
 
