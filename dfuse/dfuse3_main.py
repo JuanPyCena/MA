@@ -19,19 +19,21 @@ def getInputPlots(file: str, tables: list) -> list:
     for table in tables:
         plots += input_reader.plots(table)
 
-    return input_reader.targets, sorted(plots, key=lambda plot: datetime.timestamp(plot[4]))
+    return input_reader.targets, sorted(plots, key=lambda plot: datetime.timestamp(plot[5]))
 
 def createInputData(sensor_plots: list) -> tuple:
     # Create input data with unique id. Set extrapolation flag to true every 1 second to force extrapolation at 1 sencond intervals
-    extrapolation_time = sensor_plots[0][4]
+    extrapolation_time = sensor_plots[0][5]
     input_data = []
     plot_uuid = 0
     i = 0
     target_addresses = dict()
+    mode_a_dict = dict()
     while i < len(sensor_plots):
-        target_address, target_id, position, covariance, time, sensor_id = sensor_plots[i]
+        mode_a, target_address, target_id, position, covariance, time, sensor_id = sensor_plots[i]
         if target_id not in target_addresses.keys():
             target_addresses[target_id] = target_address
+            mode_a_dict[target_id] = mode_a
 
         if time - extrapolation_time >= timedelta(seconds=1):
             extrapolation_time = extrapolation_time + timedelta(seconds=1)
@@ -41,7 +43,7 @@ def createInputData(sensor_plots: list) -> tuple:
             i += 1
             plot_uuid += 1
 
-    return target_addresses, input_data
+    return mode_a_dict, target_addresses, input_data
 
 def main():
     dfuse = DFuse3()
@@ -49,7 +51,7 @@ def main():
     targets, sensor_plots = getInputPlots("D:\\programming\\masterarbeit\\data\\test_eval_test_run_info.adb", ["sd_mlat", "sd_adsb"])
     output_writer = OutputTrackWriter("D:\\programming\\masterarbeit\\data\\test_eval_test_run_info.adb")
 
-    target_addresses, input_data = createInputData(sensor_plots)
+    mode_a, target_addresses, input_data = createInputData(sensor_plots)
 
     # dictionary to save plot chain ids
     plot_chain = {}
@@ -75,8 +77,9 @@ def main():
 
     log.write_to_log("Stop Simulation", consoleOutput=True)
 
-    imm_output = dfuse.extrapolated_targets
-
+    imm_input     = dfuse.target_plots
+    imm_outliers  = dfuse.target_outliers
+    imm_output    = dfuse.extrapolated_targets
     # write data to csv and plot
     for target in imm_output.keys():
         imm_data_file = "D:\\programming\\masterarbeit\\\src\\testbench\\imm_data\\imm_data_{}.csv".format(target)
@@ -94,7 +97,7 @@ def main():
 
             state_prior, state_post, K, system_uncertainty, process_noise_function, state_uncertainty, measurement = metadata_f1
             imm_data_writer.x_prior1.append(state_prior.copy())
-            imm_data_writer.x_post1.append( state_post.copy())
+            imm_data_writer.x_post1.append(state_post.copy())
             imm_data_writer.K1.append(K.copy())
             imm_data_writer.R1.append(system_uncertainty.copy())
             imm_data_writer.Q1.append(process_noise_function.copy())
@@ -105,11 +108,41 @@ def main():
 
         imm_data_writer.write()
         print("Data saved in: {}".format(imm_data_writer.file_name))
-        plotter = TestbenchPlotter("D:\\programming\\pycharm\\Masterarbeit\\MA\\src\\testbench\\test_data\\test_data_acc_then_const.csv", imm_data_file)
+        plotter = TestbenchPlotter(
+            "D:\\programming\\pycharm\\Masterarbeit\\MA\\src\\testbench\\test_data\\test_data_acc_then_const.csv",
+            imm_data_file)
         plotter.plot_imm_data()
+
+    # # write data to csv and plot
+    # for target in imm_outliers.keys():
+    #     imm_data_file = "D:\\programming\\masterarbeit\\\src\\testbench\\imm_data\\imm_data_outlier_{}.csv".format(target)
+    #     imm_data_writer = DFI(imm_data_file)
+    #
+    #     for _, plot_position, _ in imm_outliers[target]:
+    #         imm_data_writer.plot_outlier = plot_position.copy()
+    #
+    #     imm_data_writer.write_outliers()
+    #     print("Data saved in: {}".format(imm_data_writer.file_name))
+    #     plotter = TestbenchPlotter("D:\\programming\\pycharm\\Masterarbeit\\MA\\src\\testbench\\test_data\\test_data_acc_then_const.csv", imm_data_file, False, True)
+    #     plotter.plot_imm_outliers()
+    #
+    # # write data to csv and plot
+    # for target in imm_input.keys():
+    #     imm_data_file = "D:\\programming\\masterarbeit\\\src\\testbench\\imm_data\\imm_data_input_{}.csv".format(target)
+    #     imm_data_writer = DFI(imm_data_file)
+    #
+    #     for _, plot_position, _ in imm_input[target]:
+    #         imm_data_writer.plot_data = plot_position.copy()
+    #
+    #     imm_data_writer.write_input()
+    #     print("Data saved in: {}".format(imm_data_writer.file_name))
+    #     plotter = TestbenchPlotter("D:\\programming\\pycharm\\Masterarbeit\\MA\\src\\testbench\\test_data\\test_data_acc_then_const.csv", imm_data_file, True)
+    #     plotter.plot_imm_input()
+
 
     # Save IMM output to database
     output_writer.target_addresses = target_addresses
+    output_writer.mode_a = mode_a
     output_writer.data = imm_output
     output_writer.writeIMMDataToDatabase()
 

@@ -10,6 +10,7 @@ from math import exp as e
 
 from datetime import datetime
 from datetime import timedelta
+from copy import deepcopy
 
 from src.utils.logmod import Logger
 
@@ -30,10 +31,12 @@ SIGMA_M_SQ_2 = 5
 # SIGMA_M_SQ_3 = 2
 
 ROLLING_MEAN_WINDOW = 20
-COASTING_TIME = 20
+COASTING_TIME = 2
 
 FADING_MEMORY1 = 1.0
 FADING_MEMORY2 = 1.5
+
+OUTLIER_SIGMA = 2
 
 log = Logger()
 
@@ -46,7 +49,11 @@ class DFuse3(object):
         self.__track_times          = dict()  # Saves last timestamp of track
         self.__output_filter_table  = dict()
         self.__extrapolated_targets = dict()  # Extrapolation of targets, this is the output of the IMM!!!
+        self.__target_plots         = dict()  # Plots of targets, this is the input of the IMM!!!
+        self.__target_outliers      = dict()  # Outlieres of targets, this is the input of the IMM!!!
         self.__a_rolling_mean       = dict()
+        self.__sensor_correction_value = 1
+
 
         self.__config = CP(cfg_path=CFGPATH)
 
@@ -75,13 +82,9 @@ class DFuse3(object):
                 continue
 
             # Save previous states to overwrite with correct parameters after extrapolation
-            # pre_state, pre_covariance, pre_mode_probabilities = track.x.copy(), track.P.copy(), track.mu.copy()
+            pre_state, pre_covariance, pre_mode_probabilities = track.x.copy(), track.P.copy(), track.mu.copy()
 
-            state, covariance, mode_probabilities = track.x.copy(), track.P.copy(), track.mu.copy()
-
-            # Use seperate Kalman Filter to perform output filtering
-            # state, covariance = self._perform_output_filtering(target, track.x.copy(), track.P.copy(), time_diff)
-            # mode_probabilities = track.mu.copy()
+            # state, covariance, mode_probabilities = track.x.copy(), track.P.copy(), track.mu.copy()
 
             f0 = track.filters[0]
             f1 = track.filters[1]
@@ -93,13 +96,13 @@ class DFuse3(object):
             # metadata_filter2 = (f2.x_prior.copy(), f2.x_post.copy(), f2.K.copy(), f2.S.copy(),
             #                     f2.Q.copy(), f2.R.copy(), f2.z.copy())
 
-            # self.__models(time_diff, track.filters)
-            #
-            # # Extrapolate
-            # self.__track_table[target].predict()
-            # state, covariance, mode_probabilities = track.x.copy(), track.P.copy(), track.mu.copy()
-            # # Overwrite with old parameters
-            # track.x, track.P, track.mu = pre_state.copy(), pre_covariance.copy(), pre_mode_probabilities.copy()
+            self.__models(time_diff, track.filters)
+
+            # Extrapolate
+            self.__track_table[target].predict()
+            state, covariance, mode_probabilities = track.x.copy(), track.P.copy(), track.mu.copy()
+            # Overwrite with old parameters
+            track.x, track.P, track.mu = pre_state.copy(), pre_covariance.copy(), pre_mode_probabilities.copy()
 
             self.__extrapolated_targets[target].append((state, covariance, extrapolation_time,
                                                         mode_probabilities, ",".join(plot_chain_id[target]),
@@ -114,25 +117,36 @@ class DFuse3(object):
 
     def add_plot_data(self, target: str, plot_position: np.ndarray, plot_covariance: np.ndarray, plot_time: datetime, sensor_id: int) -> None:
         if target not in self.__track_table.keys():
-            self.__track_table[target] = self.__initialize(plot_position, self.__prepareR(plot_covariance, sensor_id))
+            self.__track_table[target] = self.__initialize(plot_position, 100*self.__prepareR(plot_covariance, sensor_id))
             self.__track_times[target] = plot_time
             # self.__output_filter_table[target] = self.__set_up_output_filter(plot_position, plot_covariance)
             if target not in self.__extrapolated_targets.keys():
                 self.__extrapolated_targets[target] = []
+            if target not in self.__target_plots.keys():
+                self.__target_plots[target] = []
+            if target not in self.__target_outliers.keys():
+                self.__target_outliers[target] = []
             return
 
-        # Predict and update the state
         previous_state = self.__track_table[target].x
         time_diff = float(plot_time.timestamp() - self.__track_times[target].timestamp())
+
+        # correct R for sensor error model and outliers
+        corrected_R = self.__outlier_correction(target, plot_position, plot_covariance, plot_time, sensor_id)
+
         # Set model matrices
-        self.__models(time_diff, self.__track_table[target].filters, R=self.__prepareR(plot_covariance, sensor_id))
+        self.__models(time_diff, self.__track_table[target].filters, R=corrected_R)
 
         # predict and update
         # self.__track_table[target].predict(u=self.__a_mean(previous_state, target))
         self.__track_table[target].predict()
-
         self.__track_table[target].update(z=plot_position)
 
+        # Remove sensor correction
+        self.__track_table[target].P /= self.__sensor_correction_value
+        self.__track_table[target].P_post /= self.__sensor_correction_value
+
+        self.__target_plots[target].append((plot_time, plot_position, plot_covariance))
         self.__track_times[target] = plot_time
 
     ##############################################################################
@@ -140,6 +154,18 @@ class DFuse3(object):
     @property
     def extrapolated_targets(self):
         return self.__extrapolated_targets
+
+    ##############################################################################
+
+    @property
+    def target_plots(self):
+        return self.__target_plots
+
+    ##############################################################################
+
+    @property
+    def target_outliers(self):
+        return self.__target_outliers
 
     ##############################################################################
 
@@ -157,12 +183,15 @@ class DFuse3(object):
         var_xy = np.sign(xy) * np.sqrt(abs(xy)) * np.sqrt(x) * np.sqrt(y)
         var_xy = 0
 
+        self.__sensor_correction_value = 1
+
         if sensor_id == 25188:  # mlat
             mat = np.array([[x, var_xy], [var_xy, y]])
-            return mat*625
+            self.__sensor_correction_value = 529
         elif sensor_id == 20:  # adsb
-            return mat/1000
-        return mat
+            self.__sensor_correction_value = 1/529
+
+        return self.__sensor_correction_value * mat
 
     ##############################################################################
 
@@ -454,4 +483,41 @@ class DFuse3(object):
         kf.z = initial_measurement
 
         return (kf, {})
+
+    ##############################################################################
+
+    def __outlier_correction(self, target: str, plot_position: np.ndarray, plot_covariance: np.ndarray, plot_time: datetime, sensor_id: int) -> np.ndarray:
+        imm = deepcopy(self.__track_table[target])
+
+        # Predict and update the state
+        previous_imm  = deepcopy(self.__track_table[target])
+        previous_time = deepcopy(self.__track_times[target])
+
+        time_diff = float(plot_time.timestamp() - previous_time.timestamp())
+        R         = self.__prepareR(plot_covariance, sensor_id)
+
+        # Set model matrices
+        self.__models(time_diff, imm.filters, R)
+
+        # predict
+        imm.predict()
+        x_imm, P_imm = deepcopy(imm.x_prior), deepcopy(imm.P_prior)
+        H = deepcopy(imm.filters[0].H)
+
+        # reset IMM just in case
+        self.__track_table[target] = previous_imm
+        self.__track_times[target] = previous_time
+
+        # calculate mahalanobis distance for IMM and adjust R accordingly
+
+        y_imm = plot_position - np.dot(H, x_imm).astype(float)
+        S_imm = np.dot(H, np.dot(P_imm, H.T).astype(float)) + R
+
+        MD = np.sqrt(float(np.dot(np.dot(y_imm.T, np.linalg.inv(S_imm)), y_imm)))
+
+        if MD >= OUTLIER_SIGMA:
+            self.__sensor_correction_value /= 2 * MD
+            return 2 * MD * R
+        return R
+
     # EOC

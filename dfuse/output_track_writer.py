@@ -8,6 +8,7 @@ class OutputTrackWriter(object):
         self._data = list()
         self._unique_track_ids = dict()
         self._target_adresses = dict()
+        self._mode_a = dict()
         self._connection = self._create_connection(file)
 
     @property
@@ -17,6 +18,13 @@ class OutputTrackWriter(object):
     @target_addresses.setter
     def target_addresses(self, addresses: dict) -> None:
         self._target_adresses = addresses
+    @property
+    def mode_a(self) -> dict:
+        return self._mode_a
+
+    @mode_a.setter
+    def mode_a(self, mode_a: dict) -> None:
+        self._mode_a = mode_a
 
     @property
     def data(self) -> list:
@@ -72,7 +80,8 @@ class OutputTrackWriter(object):
             "time_recording FLOAT, " \
             "time_recording_daq_pos FLOAT, " \
             "date INT, " \
-            "target_adress INT, " \
+            "target_address INT, " \
+            "mode_a_code INT, " \
             "target_identification TEXT, " \
             "plot_id_chain TEXT, " \
             "track BOOLEAN, " \
@@ -87,11 +96,13 @@ class OutputTrackWriter(object):
         for target_id, pos_x, pos_y, vel_x, vel_y, var_x, var_y, cov_xy, date, time, plot_ids, probs in self.data:
             unique_track_num = self._unique_track_ids[target_id]
             target_address   = self.target_addresses[target_id]
+            mode_a   = self.mode_a[target_id]
 
             row = f"{rec_num}, 0, {pos_x}, {pos_y}, {vel_x}, " \
                   f"{vel_y}, {var_x}, {var_y}, " \
                   f"{cov_xy}, {time}, {time}, {time}, " \
-                  f"{date}, {target_address}, \"{target_id}\", \"{plot_ids}\", 1, 1, \"{probs}\", {unique_track_num}"
+                  f"{date}, {target_address},  {mode_a}, \"{target_id}\", " \
+                  f"\"{plot_ids}\", 1, 1, \"{probs}\", {unique_track_num}"
 
             query = f"INSERT INTO sd_track VALUES ({row})"
             self.connection.execute(query)

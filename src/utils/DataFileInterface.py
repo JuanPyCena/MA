@@ -16,6 +16,8 @@ class DataFilteInterface(object):
         self.__file_name          = file_name
         self.__measurement_data   = []
         self.__state_data         = []
+        self.__plot_data          = []
+        self.__plot_outlier       = []
         self.__mode_probabilities = []
         self.__state_errors       = []
         self.K0 = []
@@ -56,6 +58,24 @@ class DataFilteInterface(object):
     @typecheck(np.ndarray)
     def state_data(self, data):
         self.__state_data.append(data)
+
+    @property
+    def plot_data(self):
+        return self.__plot_data
+
+    @plot_data.setter
+    @typecheck(np.ndarray)
+    def plot_data(self, data):
+        self.__plot_data.append(data)
+
+    @property
+    def plot_outlier(self):
+        return self.__plot_outlier
+
+    @plot_outlier.setter
+    @typecheck(np.ndarray)
+    def plot_outlier(self, data):
+        self.__plot_outlier.append(data)
 
     @property
     def mode_probabilities(self):
@@ -118,6 +138,32 @@ class DataFilteInterface(object):
                 self.S0.append(ParserLib.read_matrix(row["S0"]))
                 self.S1.append(ParserLib.read_matrix(row["S1"]))
 
+     ##############################################################################
+
+    def read_input(self):
+        """
+        Reads data from a given file into internal variables
+        """
+        self.__plot_data         = []
+
+        with open(self.__file_name, mode='r') as csv_file:
+            csv_reader = csv.DictReader(csv_file, delimiter=";")
+            for row in csv_reader:
+                self.plot_data          = ParserLib.read_matrix(row["plot_data"])
+
+     ##############################################################################
+
+    def read_outlier(self):
+        """
+        Reads data from a given file into internal variables
+        """
+        self.__plot_outliers     = []
+
+        with open(self.__file_name, mode='r') as csv_file:
+            csv_reader = csv.DictReader(csv_file, delimiter=";")
+            for row in csv_reader:
+                self.plot_outlier       = ParserLib.read_matrix(row["plot_outliers"])
+
     ##############################################################################
 
     def write(self):
@@ -177,6 +223,38 @@ class DataFilteInterface(object):
                                  'S0': S0,
                                  'S1': S1
                                  })
+
+    ##############################################################################
+
+    def write_input(self):
+        """
+        Writes the data saved in this object to the given file
+        """
+        with open(self.__file_name, mode='w', newline="") as csv_file:
+            fieldnames = ["plot_data"]
+            writer = csv.DictWriter(csv_file, fieldnames=fieldnames, delimiter=";")
+            writer.writeheader()
+
+            for line, _ in enumerate(self.plot_data):
+                plot_data          = ParserLib.write_list(self.plot_data[line])
+
+                writer.writerow({'plot_data': plot_data})
+
+    ##############################################################################
+
+    def write_outliers(self):
+        """
+        Writes the data saved in this object to the given file
+        """
+        with open(self.__file_name, mode='w', newline="") as csv_file:
+            fieldnames = ["plot_outliers"]
+            writer = csv.DictWriter(csv_file, fieldnames=fieldnames, delimiter=";")
+            writer.writeheader()
+
+            for line, _ in enumerate(self.plot_outlier):
+                plot_outliers          = ParserLib.write_list(self.plot_outlier[line])
+
+                writer.writerow({'plot_outliers': plot_outliers})
 
     ##############################################################################
 

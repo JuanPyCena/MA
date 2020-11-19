@@ -8,7 +8,7 @@ from src.utils.Decorators import *
 class TestbenchPlotter(object):
 
     @typecheck(str, str)
-    def __init__(self, test_data_file, imm_data_file):
+    def __init__(self, test_data_file, imm_data_file, input=False, outlier=False):
         # Determine path were figures should be saved to
         _, self.plot_name_test_data = test_data_file.rsplit("\\", 1)
         _, self.plot_name_imm_data = imm_data_file.rsplit("\\", 1)
@@ -27,8 +27,15 @@ class TestbenchPlotter(object):
 
         self.imm_data = dict()
         self.df_interface = DFI(imm_data_file)
-        self.df_interface.read()
-        self.__retrieve_data()
+        if input:
+            self.df_interface.read_input()
+            self.__retrieve_input_data()
+        elif outlier:
+            self.df_interface.read_outlier()
+            self.__retrieve_outlier_data()
+        else:
+            self.df_interface.read()
+            self.__retrieve_data()
 
     ##############################################################################
 
@@ -109,6 +116,32 @@ class TestbenchPlotter(object):
 
         # mode_probabilities
         self.imm_data["mode_probabilities"] = self.df_interface.mode_probabilities
+
+    ##############################################################################
+
+    def __retrieve_input_data(self):
+        plot_data = []
+
+        for data_point in self.df_interface.plot_data:
+            pos = []
+            pos.append(data_point[0])
+            pos.append(data_point[1])
+            plot_data.append(pos)
+
+        self.imm_data["plot_data"] = plot_data
+
+    ##############################################################################
+
+    def __retrieve_outlier_data(self):
+        plot_outliers = []
+
+        for data_point in self.df_interface.plot_outlier:
+            pos = []
+            pos.append(data_point[0])
+            pos.append(data_point[1])
+            plot_outliers.append(pos)
+
+        self.imm_data["plot_outliers"] = plot_outliers
 
     ##############################################################################
 
@@ -307,6 +340,54 @@ class TestbenchPlotter(object):
         # plt.show()
 
         print("Finished Plotting IMM data")
+
+    ##############################################################################
+
+    def plot_imm_input(self):
+        print("Start Plotting IMM input data")
+        x_pos_state       = [pos[0] for pos in self.imm_data["plot_data"]]
+        y_pos_state       = [pos[1] for pos in self.imm_data["plot_data"]]
+
+        ariport_map = plt.imread("D:\\programming\\masterarbeit\\src\\testbench\\EDDH_HAM_Layout.png")
+        fig, axs = plt.subplots(1)
+        # axs.imshow(ariport_map, extent=[-1730, 1453, -1450, 2930])
+        axs.imshow(ariport_map, extent=[-2176, 1644, -1800, 3466])
+        #axs.plot(x_pos_measurement, y_pos_measurement, ':', label="Measurement")
+        axs.scatter(x_pos_state, y_pos_state, label="Input", s=0.01, marker="2")
+        axs.set_title('IMM Input')
+        axs.set_xlabel("x")
+        axs.set_ylabel("y")
+        axs.legend()
+
+        fig.tight_layout()
+        plt.savefig(self.plot_name_imm_data + "_plot", dpi=1000)
+        #plt.show()
+
+        print("Finished Plotting IMM input data")
+
+    ##############################################################################
+
+    def plot_imm_outliers(self):
+        print("Start Plotting IMM input data")
+        x_pos_state       = [pos[0] for pos in self.imm_data["plot_outliers"]]
+        y_pos_state       = [pos[1] for pos in self.imm_data["plot_outliers"]]
+
+        ariport_map = plt.imread("D:\\programming\\masterarbeit\\src\\testbench\\EDDH_HAM_Layout.png")
+        fig, axs = plt.subplots(1)
+        # axs.imshow(ariport_map, extent=[-1730, 1453, -1450, 2930])
+        axs.imshow(ariport_map, extent=[-2176, 1644, -1800, 3466])
+        #axs.plot(x_pos_measurement, y_pos_measurement, ':', label="Measurement")
+        axs.scatter(x_pos_state, y_pos_state, label="Outliers", s=1, marker="2")
+        axs.set_title('IMM Outliers')
+        axs.set_xlabel("x")
+        axs.set_ylabel("y")
+        axs.legend()
+
+        fig.tight_layout()
+        plt.savefig(self.plot_name_imm_data + "_plot", dpi=1000)
+        #plt.show()
+
+        print("Finished Plotting IMM outlier data")
 
     ##############################################################################
 
