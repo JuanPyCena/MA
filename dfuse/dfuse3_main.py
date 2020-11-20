@@ -19,21 +19,23 @@ def getInputPlots(file: str, tables: list) -> list:
     for table in tables:
         plots += input_reader.plots(table)
 
-    return input_reader.targets, sorted(plots, key=lambda plot: datetime.timestamp(plot[5]))
+    return input_reader.targets, sorted(plots, key=lambda plot: datetime.timestamp(plot[6]))
 
 def createInputData(sensor_plots: list) -> tuple:
     # Create input data with unique id. Set extrapolation flag to true every 1 second to force extrapolation at 1 sencond intervals
-    extrapolation_time = sensor_plots[0][5]
+    extrapolation_time = sensor_plots[0][6]
     input_data = []
     plot_uuid = 0
     i = 0
     target_addresses = dict()
     mode_a_dict = dict()
+    vehicle_dict = dict()
     while i < len(sensor_plots):
-        mode_a, target_address, target_id, position, covariance, time, sensor_id = sensor_plots[i]
+        mode_a, target_address, vehicle, target_id, position, covariance, time, sensor_id = sensor_plots[i]
         if target_id not in target_addresses.keys():
             target_addresses[target_id] = target_address
             mode_a_dict[target_id] = mode_a
+            vehicle_dict[target_id] = vehicle
 
         if time - extrapolation_time >= timedelta(seconds=1):
             extrapolation_time = extrapolation_time + timedelta(seconds=1)
@@ -43,7 +45,7 @@ def createInputData(sensor_plots: list) -> tuple:
             i += 1
             plot_uuid += 1
 
-    return mode_a_dict, target_addresses, input_data
+    return mode_a_dict, target_addresses, vehicle_dict, input_data
 
 def main():
     dfuse = DFuse3()
@@ -51,7 +53,9 @@ def main():
     targets, sensor_plots = getInputPlots("D:\\programming\\masterarbeit\\data\\test_eval_test_run_info.adb", ["sd_mlat", "sd_adsb"])
     output_writer = OutputTrackWriter("D:\\programming\\masterarbeit\\data\\test_eval_test_run_info.adb")
 
-    mode_a, target_addresses, input_data = createInputData(sensor_plots)
+    mode_a, target_addresses, vehicle, input_data = createInputData(sensor_plots)
+
+    dfuse.vehicle = vehicle
 
     # dictionary to save plot chain ids
     plot_chain = {}
@@ -80,6 +84,12 @@ def main():
     imm_input     = dfuse.target_plots
     imm_outliers  = dfuse.target_outliers
     imm_output    = dfuse.extrapolated_targets
+
+    output_writer.target_addresses = target_addresses
+    output_writer.mode_a = mode_a
+    output_writer.data = imm_output
+    output_writer.writeIMMDataToDatabase()
+
     # write data to csv and plot
     for target in imm_output.keys():
         imm_data_file = "D:\\programming\\masterarbeit\\\src\\testbench\\imm_data\\imm_data_{}.csv".format(target)
@@ -141,10 +151,7 @@ def main():
 
 
     # Save IMM output to database
-    output_writer.target_addresses = target_addresses
-    output_writer.mode_a = mode_a
-    output_writer.data = imm_output
-    output_writer.writeIMMDataToDatabase()
+
 
 if __name__ == "__main__":
     main()

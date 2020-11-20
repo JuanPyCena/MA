@@ -25,9 +25,10 @@ class InputPlotReader(object):
 
     def plots(self, table: str) -> list:
         plots = []
-        for target_address, mode_a, target_id, x, y, x_var, y_var, xy_cov, date, time, sensor_id in self.connection.execute("SELECT "
+        for target_address, mode_a, vehicle, target_id, x, y, x_var, y_var, xy_cov, date, time, sensor_id in self.connection.execute("SELECT "
                                        "target_address,"
                                        "mode_a_code,"
+                                       "vehicle,"
                                        "target_identification,"
                                        "position_x,"
                                        "position_y,"
@@ -45,7 +46,7 @@ class InputPlotReader(object):
             time_of_plot = datetime.fromtimestamp(float(datetime.timestamp(datetime.strptime(str(date), "%Y%m%d"))) + float(time))
             if mode_a is None:
                 mode_a = 7000
-            plots.append((mode_a, target_address, target_id, position, covariance, time_of_plot, sensor_id))
+            plots.append((mode_a, target_address, vehicle, target_id, position, covariance, time_of_plot, sensor_id))
 
         return plots
 

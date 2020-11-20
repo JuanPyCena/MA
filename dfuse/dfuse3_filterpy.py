@@ -53,7 +53,7 @@ class DFuse3(object):
         self.__target_outliers      = dict()  # Outlieres of targets, this is the input of the IMM!!!
         self.__a_rolling_mean       = dict()
         self.__sensor_correction_value = 1
-
+        self.__vehicle = dict()
 
         self.__config = CP(cfg_path=CFGPATH)
 
@@ -117,7 +117,7 @@ class DFuse3(object):
 
     def add_plot_data(self, target: str, plot_position: np.ndarray, plot_covariance: np.ndarray, plot_time: datetime, sensor_id: int) -> None:
         if target not in self.__track_table.keys():
-            self.__track_table[target] = self.__initialize(plot_position, 100*self.__prepareR(plot_covariance, sensor_id))
+            self.__track_table[target] = self.__initialize(plot_position, 10*self.__prepareR(target, plot_covariance, sensor_id))
             self.__track_times[target] = plot_time
             # self.__output_filter_table[target] = self.__set_up_output_filter(plot_position, plot_covariance)
             if target not in self.__extrapolated_targets.keys():
@@ -156,6 +156,17 @@ class DFuse3(object):
         return self.__extrapolated_targets
 
     ##############################################################################
+    @property
+    def vehicle(self):
+        return self.__vehicle
+
+    ##############################################################################
+
+    @vehicle.setter
+    def vehicle(self, dict):
+        self.__vehicle = dict
+
+    ##############################################################################
 
     @property
     def target_plots(self):
@@ -175,7 +186,7 @@ class DFuse3(object):
 
     ##############################################################################
 
-    def __prepareR(self, mat: np.ndarray, sensor_id: int) -> np.ndarray:
+    def __prepareR(self, target: str, mat: np.ndarray, sensor_id: int) -> np.ndarray:
         x = mat[0][0]
         y = mat[0][0]
         xy = mat[1][0]
@@ -184,14 +195,22 @@ class DFuse3(object):
         var_xy = 0
 
         self.__sensor_correction_value = 1
+        vehicle = self.vehicle[target] == 1
 
         if sensor_id == 25188:  # mlat
             mat = np.array([[x, var_xy], [var_xy, y]])
             self.__sensor_correction_value = 529
-        elif sensor_id == 20:  # adsb
-            self.__sensor_correction_value = 1/529
+        elif sensor_id == 20 and not vehicle:  # adsb
+            self.__sensor_correction_value = 1/20
+        elif sensor_id == 20 and vehicle:  # adsb
+            self.__sensor_correction_value = 1/1000
 
-        return self.__sensor_correction_value * mat
+        mat *= self.__sensor_correction_value
+
+        # if self.__sensor_correction_value <= 1:
+        #     self.__sensor_correction_value = 1
+
+        return mat
 
     ##############################################################################
 
@@ -494,7 +513,7 @@ class DFuse3(object):
         previous_time = deepcopy(self.__track_times[target])
 
         time_diff = float(plot_time.timestamp() - previous_time.timestamp())
-        R         = self.__prepareR(plot_covariance, sensor_id)
+        R         = self.__prepareR(target, plot_covariance, sensor_id)
 
         # Set model matrices
         self.__models(time_diff, imm.filters, R)
